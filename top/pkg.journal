@@ -1,0 +1,21 @@
+~~~~~; 1412483511; Sat, 04 Oct 2014 23:31:51; PUBLISH; john; 0.0.1; main; OUTCAST_nqbp-main-0.0.1; initial live/production publish
+
+
+~~~~~; 1412564802; Sun, 05 Oct 2014 22:06:42; PUBLISH; DaVinci BuildMachine <noreply@example.com>; 0.0.2; main; OUTCAST_nqbp-main-0.0.2; Official Build
+
+
+~~~~~; 1412566576; Sun, 05 Oct 2014 22:36:16; PUBLISH; DaVinci BuildMachine <noreply@example.com>; 0.0.3; main; OUTCAST_nqbp-main-0.0.3; Official Build
+
+
+~~~~~; 1413760030; Sun, 19 Oct 2014 18:07:10; PUBLISH; john; 0.0.4; main; OUTCAST_nqbp-main-0.0.4; official build/publish
+
+
+~~~~~; 1414369597; Sun, 26 Oct 2014 19:26:37; PUBLISH; john; 0.1.0; main; OUTCAST_nqbp-main-0.1.0; add vs2012 console toolchain and some bug fixes
+
+
+~~~~~; 1415504407; Sat, 08 Nov 2014 21:40:07; PUBLISH; john; 0.1.1; main; OUTCAST_nqbp-main-0.1.1; publish with support for gcc under linux
+
+
+~~~~~; 1419905090; Mon, 29 Dec 2014 20:04:50; PUBLISH; john; 1.0.0; main; OUTCAST_nqbp-main-1.0.0; 1) standardize argument notations. 2) fix bld-all option. 3) abstract '-D' for build time/variant to work with all compilers. 4) Fix bug where compiler errors where not being captured in the log file
+
+

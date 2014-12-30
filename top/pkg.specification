@@ -1,0 +1,17 @@
+[info]
+name = nqbp
+branch = main
+version = 1.0.0
+pubtime = 1419905090
+pubtimelocal = Mon, 29 Dec 2014 20:04:50
+desc = (N)ot (Q)uite (B)env - (P)ython: is multi-host build engine for C/C++
+owner = John Taylor
+email = John.T.Taylor@gmail.com
+url = 
+
+[immediate_deps]
+
+[weak_deps]
+
+[transitive_deps]
+

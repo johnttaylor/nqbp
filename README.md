@@ -1,6 +1,7 @@
 NQBP stands for (N)ot (Q)uite (B)env - (P)ython.
 
 NQBP is a multi-host build engine designed for:
+
     - C, C++, and assembler builds
     - Embedded development (but not limited to)
     - Minimal overhead to the developer, i.e. no makefiles required
@@ -13,6 +14,7 @@ NQBP is a multi-host build engine designed for:
     - Supports building in Outcast
 
 NQBP is not:
+
     - A make based build engine. In fact NQBP does no dependency/what-has-changed checking at all!
     - An optimal choice for large (+100KLOC) projects 
     

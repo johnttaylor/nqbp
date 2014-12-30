@@ -17,5 +17,7 @@ NQBP is not:
 
     - A make based build engine. In fact NQBP does no dependency/what-has-changed checking at all!
     - An optimal choice for large (+100KLOC) projects 
-    
-Additional information is availabe at: http://www.integerfox.com/nqbp
+
+Documentation is located in the top/ directory and/or availabe at: http://www.integerfox.com/nqbp.
+
+NQBP is licensed with a BSD licensing agreement (see the top/ directory).

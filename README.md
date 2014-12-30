@@ -11,7 +11,7 @@ NQBP is a multi-host build engine designed for:
     - Source code resusablilty, i.e. NQBP assumes that code is/will be shared across many projects.
     - Resusablilty of Compiler toolchains, i.e once a particular compiler toolchain has been created/defined - it can be reused across an unlimited number of projects.
     - Very effective on small to medium size projects
-    - Supports building in Outcast
+    - Supports building in Outcast [http://www.integerfox.com/outcast]
 
 NQBP is not:
 

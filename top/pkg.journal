@@ -19,3 +19,6 @@
 ~~~~~; 1419905090; Mon, 29 Dec 2014 20:04:50; PUBLISH; john; 1.0.0; main; OUTCAST_nqbp-main-1.0.0; 1) standardize argument notations. 2) fix bld-all option. 3) abstract '-D' for build time/variant to work with all compilers. 4) Fix bug where compiler errors where not being captured in the log file
 
 
+~~~~~; 1424630781; Sun, 22 Feb 2015 12:46:21; PUBLISH; johnttaylor <john.t.taylor@gmail.com>; 1.0.1; main; OUTCAST_nqbp-main-1.0.1; Official Build
+
+

@@ -19,7 +19,7 @@ class ToolChain( base.ToolChain ):
         self._ccname = 'Mingw (32bit)'
         
         # statically link my C/C++ libraries
-        self._base_release.cflags  = self._base_release.cflags + ' -Wl,-static-libgcc -Wl,-static-libstdc++ '
+        self._base_release.linkflags  = self._base_release.linkflags + ' -static -static-libgcc -static-libstdc++ '
         
         #
         # Build Config/Variant: "xyz"

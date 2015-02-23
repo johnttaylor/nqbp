@@ -1,3 +1,6 @@
 ~~~~~; 1424630781; Sun, 22 Feb 2015 12:46:21; PUBLISH; johnttaylor <john.t.taylor@gmail.com>; 1.0.1; main; OUTCAST_nqbp-main-1.0.1; Official Build
 
 
+~~~~~; 1424651225; Sun, 22 Feb 2015 18:27:05; PUBLISH; johnttaylor <john.t.taylor@gmail.com>; 1.0.2; main; OUTCAST_nqbp-main-1.0.2; Fix link error for MinGW with respect to dynamic/static linking of libstdc++
+
+

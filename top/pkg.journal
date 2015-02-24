@@ -4,3 +4,9 @@
 ~~~~~; 1424651225; Sun, 22 Feb 2015 18:27:05; PUBLISH; johnttaylor <john.t.taylor@gmail.com>; 1.0.2; main; OUTCAST_nqbp-main-1.0.2; Fix link error for MinGW with respect to dynamic/static linking of libstdc++
 
 
+~~~~~; 1424742725; Mon, 23 Feb 2015 19:52:05; PUBLISH; DaVinci <build.machine@noemail.com>; 1.0.3; main; OUTCAST_nqbp-main-1.0.3; bug fix: incorrect xpkgs reference/path in include libdirs.b file
+
+
+~~~~~; 1424743713; Mon, 23 Feb 2015 20:08:33; PUBLISH; DaVinci <build.machine@noemail.com>; 1.0.4; main; OUTCAST_nqbp-main-1.0.4; bug fix: fix the last bug fix!
+
+

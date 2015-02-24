@@ -140,7 +140,6 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
         # Calc root/leading path    
         if ( line.startswith(os.sep+os.sep) ):
             path      = os.path.join(NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() ) + os.sep
-            path      = NQBP_WORK_ROOT() + os.sep
             line      = line [2:]
             entry     = 'xpkg'
             newparent = line.split(os.sep)[0]

@@ -125,6 +125,7 @@ class ToolChain:
         self._base_release.inc       = '-I. -I{}{}src  -I{} -I{}{}{}{}src'.format(NQBP_PKG_ROOT(),os.sep, prjdir, NQBP_WORK_ROOT(),os.sep,NQBP_PUBLICAPI_DIRNAME(),os.sep  )
         self._base_release.asminc    = self._base_release.inc
         self._base_release.cflags    = '-c -DBUILD_TIME_UTC={:d} '.format(self._build_time_utc)
+        self._base_release.asmflags  = self._base_release.cflags
         #self._base_release.linklibs  = '-L lib -Wl,-lstdc++'
         self._base_release.linklibs  = '-Wl,-lstdc++'
         
@@ -239,8 +240,10 @@ class ToolChain:
         base           = bld.get('base', self._base_release ).copy() # default to the release 'base' if not defined
         base.cflags   += " {}BUILD_VARIANT_{} ".format(self._cflag_symdef,  self._bld.upper());
         base.asmflags += " {}BUILD_VARIANT_{} ".format(self._asmflag_symdef,self._bld.upper());
-        self._all_opts = base
-        self._all_opts.append( bld.get('user_base', null ) )
+#        self._all_opts = base
+#        self._all_opts.append( bld.get('user_base', null ) )
+        self._all_opts = bld.get('user_base', null )
+        self._all_opts.append( base )
        
         
         if ( arguments['-g'] ):
@@ -292,6 +295,9 @@ class ToolChain:
     #--------------------------------------------------------------------------
     def cc( self, arguments, fullname ):
     
+        # parse incoming name into its base
+        basename = os.path.splitext( os.path.basename( fullname ) )[0]
+        
         # construct compiler/assembler command
         cc = '{} {} {}'.format( self._cc,
                                 self._all_opts.cflags,
@@ -309,6 +315,10 @@ class ToolChain:
         else:
             utils.output( "ERROR: No rule to compile the file: {}".format( os.path.basename(fullname) ) )
             sys.exit(1)
+
+        # Do any subsitition of the 'ME_xxx' values
+        cc = cc.replace( 'ME_CC_BASE_FILENAME', basename )
+        
 
         # ensure correct directory seperator                                
         full_fname = utils.standardize_dir_sep( fullname )
@@ -349,6 +359,8 @@ class ToolChain:
 
         # construct link command
         libs = self._build_library_list( libdirs )
+        startgroup = self._linker_libgroup_start if libs != '' else ''
+        endgroup   = self._linker_libgroup_end   if libs != '' else ''
         ld = '{} {} {} {} {} {} {} {} {} {}'.format( 
                                             self._ld,
                                             self._link_output,
@@ -356,9 +368,9 @@ class ToolChain:
                                             self._build_prjobjs_list(),
                                             self._all_opts.linkflags,
                                             self._all_opts.linkscript,
-                                            self._linker_libgroup_start,
+                                            startgroup,
                                             libs,
-                                            self._linker_libgroup_end,
+                                            endgroup,
                                             self._all_opts.linklibs
                                             )
                                           

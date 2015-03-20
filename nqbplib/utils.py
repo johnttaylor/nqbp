@@ -320,13 +320,15 @@ def get_files_to_build( toolchain, dir, sources_b ):
     files = []
     
     # get the list of potential file to build (when no 'sources.b' is present)
-    if ( not os.path.isfile( sources_b) ):
-        files = dir_list_filter_by_ext(dir, ['c', 'cpp'] + toolchain.get_asm_extensions() )
-        debug( "# Creating auto.sources.b for dir: {}".format( dir ) )
+    src_b = os.path.join( dir, sources_b )
+    if ( not os.path.isfile( src_b) ):
+        exts = ['c', 'cpp'] + toolchain.get_asm_extensions()
+        debug( "# Creating auto.sources.b for dir: {}. Extensions={}".format( dir, exts )  )
+        files = dir_list_filter_by_ext(dir, exts )
                 
     # get the list of files to build from 'sources.b'
     else:
-        inf = open( sources_b, 'r' )
+        inf = open( src_b, 'r' )
         for line in inf:
             # drop comments and blank lines
             line = line.strip() 

@@ -220,6 +220,15 @@ class ToolChain:
         extlist = [ self._asm_ext ]
         return extlist
         
+
+    def is_asm_file( self, fullname ):
+        for e in self.get_asm_extensions():                 
+            if ( fullname.endswith(e) ):
+                return True
+           
+        # If I get here there was not match   
+        return False
+        
     #--------------------------------------------------------------------------
     def pre_build(self, bld_var, arguments ):
         utils.debug( '# ENTER: base.ToolChain.pre_build' )
@@ -252,6 +261,10 @@ class ToolChain:
         else:
             self._all_opts.append( bld.get('optimized', self._optimized_release ) )
             self._all_opts.append( bld.get('user_optimized', null ) )
+            
+        if ( arguments['--debug'] ):
+            utils.debug( "# Final 'all_opts'" )
+            self._dump_options(  self._all_opts, True )
             
 
     #--------------------------------------------------------------------------
@@ -291,7 +304,7 @@ class ToolChain:
             sys.exit(1)
       
         return r
-              
+
     #--------------------------------------------------------------------------
     def cc( self, arguments, fullname ):
     
@@ -306,8 +319,8 @@ class ToolChain:
         if ( fullname.endswith('.c') ):
             pass
         elif ( fullname.endswith('.cpp') ):
-            cc += ' ' + self._all_opts.cppflags
-        elif ( fullname.endswith(self._asm_ext) ):
+            cc = '{} {}'.format(cc, self._all_opts.cppflags)
+        elif ( self.is_asm_file(fullname) ):
             cc = '{} {} {}'.format( self._asm,
                                     self._all_opts.asmflags,
                                     self._all_opts.asminc
@@ -425,14 +438,17 @@ class ToolChain:
             for sk,sv in v.items():
                 if ( sk != 'nop' ):
                     utils.debug( '#    Options: '      + sk )
-                    utils.debug( '#      inc:        ' + sv.inc )
-                    utils.debug( '#      asminc:     ' + sv.asminc  )
-                    utils.debug( '#      cflags:     ' + sv.cflags  )
-                    utils.debug( '#      cppflags:   ' + sv.cppflags )
-                    utils.debug( '#      asmflags:   ' + sv.asmflags )
-                    utils.debug( '#      linkflags:  ' + sv.linkflags )
-                    utils.debug( '#      linklibs:   ' + sv.linklibs )
-                    utils.debug( '#      firstobjs:  ' + sv.firstobjs )
-                    utils.debug( '#      linkscript: ' + sv.linkscript )
+                    self._dump_options( sv )
+                    
+    def _dump_options( self, sv, extraSpace=False ):
+        utils.debug( '#      inc:        ' + sv.inc        + ("\n" if extraSpace else " "))
+        utils.debug( '#      asminc:     ' + sv.asminc     + ("\n" if extraSpace else " "))
+        utils.debug( '#      cflags:     ' + sv.cflags     + ("\n" if extraSpace else " "))
+        utils.debug( '#      cppflags:   ' + sv.cppflags   + ("\n" if extraSpace else " "))
+        utils.debug( '#      asmflags:   ' + sv.asmflags   + ("\n" if extraSpace else " "))
+        utils.debug( '#      linkflags:  ' + sv.linkflags  + ("\n" if extraSpace else " "))
+        utils.debug( '#      linklibs:   ' + sv.linklibs   + ("\n" if extraSpace else " "))
+        utils.debug( '#      firstobjs:  ' + sv.firstobjs  + ("\n" if extraSpace else " "))
+        utils.debug( '#      linkscript: ' + sv.linkscript + ("\n" if extraSpace else " "))
   
                                                                          

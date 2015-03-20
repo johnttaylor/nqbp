@@ -1,5 +1,5 @@
 @echo off
-set KPIT_GNU_RX_ROOT=c:\progra~2\renesas\hew\tools\kpitcu~1\gnurx-elf\v11.03\rx-elf
-set PATH=%KPIT_GNU_RX_ROOT%\bin;%KPIT_GNU_RX_ROOT%\rx-elf\bin;%PATH%
-::set PATH=%KPIT_GNU_RX_ROOT%\rx-elf\bin;%PATH%
-echo:KPit Cummins Gnu-RX (Elf) Environment setup
+SET PATH=C:\PROGRA~2\KPIT\GNURXV~1.03-\rx-elf/rx-elf\bin;C:\PROGRA~2\KPIT\GNURXV~1.03-\OtherU~1;C:\PROGRA~2\KPIT\GNURXV~1.03-\rx-elf/rx-elf\libexec\gcc\rx-elf\4.8-GNURX_v14.03;%PATH%
+SET MAKE_MODE=unix
+
+echo:KPit Cummins Gnu-RX v14.03 (Elf) Environment setup

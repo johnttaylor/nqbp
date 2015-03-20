@@ -17,33 +17,34 @@ class ToolChain( base.ToolChain ):
     #--------------------------------------------------------------------------
     def __init__( self, exename, prjdir, build_variants, default_variant='release' ):
         base.ToolChain.__init__( self, exename, prjdir, build_variants, default_variant )
-        self._ccname = 'KPit Cummins - GNU RX-ELF'
-        self._cc       = 'rx-elf-gcc-wrapper'  
-        self._ld       = 'rx-elf-gcc-wrapper'  
-        self._asm      = 'rx-elf-gcc-wrapper'   
+        self._ccname   = 'KPit Cummins - GNU RX-ELF'
+        self._cc       = 'rx-elf-gcc'  
+        self._ld       = 'rx-elf-gcc'  
+        self._asm      = 'rx-elf-gcc'   
         self._ar       = 'rx-elf-ar'   
         self._objcpy   = 'rx-elf-objcpy'
 
         self._asm_ext  = 'asm'    
+        self._asm_ext2 = 'S'    
         
         self._clean_list.extend( ('x', 'mot') )
         
         # Get root of the final output name
         exename_base = os.path.splitext(exename)[0] 
 
-        # Note: defaults to using 'newlib'
-        self._base_release.cflags   = self._base_release.cflags + '-mcpu=rx600 -Wa,-alhs=ME_CC_BASE_FILENAME.lst'
+        # Note: defaults to using 'optimized libc'
+        self._base_release.cflags   = self._base_release.cflags + '-mcpu=rx600 -Wa,-alhs=ME_CC_BASE_FILENAME.lst '
         self._base_release.asmflags = self._base_release.cflags
 
-        self._base_release.linklibs  = ' -Wl,--start-group -lnosys -lstdc++ -lgcc -lc -lm -Wl,--end-group '
+        self._base_release.linklibs  = ' -Wl,--start-group -lstdc++ -lgcc -lnosys -loptc -loptm -Wl,--end-group '
         self._base_release.linkflags = '-nostartfiles -Wl,-Map=' + exename_base + '.map'
 
-        self._debug_release.cflags   = self._debug_release.cflags + ' -D DEBUG'
+        self._debug_release.cflags   = self._debug_release.cflags + ' -g2 -D DEBUG'
         self._debug_release.asmflags = self._debug_release.cflags
-
-        self._optimized_release.cflags = self._optimized_release.cflags + ' -fno-function-cse -funit-at-a-time -falign-jumps -fdata-sections -ffunction-sections -D RELEASE'
-        self._optimized_release.asmflags = self._optimized_release.cflags
-        self._optimized_release.linkflags = '--no-keep-memory --strip-debug'
+           
+        self._optimized_release.cflags    = self._optimized_release.cflags + ' -fno-function-cse -funit-at-a-time -falign-jumps -fdata-sections -ffunction-sections -D RELEASE'
+        self._optimized_release.asmflags  = self._optimized_release.cflags
+        self._optimized_release.linkflags = '-Wl,--no-keep-memory -Wl,--strip-debug'
 
         
         #
@@ -69,6 +70,12 @@ class ToolChain( base.ToolChain ):
         #self._bld_variants['xyz']['base']      = self._base_xyz
         #self._bld_variants['xyz']['optimized'] = self._optimized_xyz
         #self._bld_variants['xyz']['debug']     = self._debug_xyz
+
+    #--------------------------------------------------------------------------
+    def get_asm_extensions(self):
+        extlist = [ self._asm_ext, self._asm_ext2 ]
+        return extlist
+        
 
     #--------------------------------------------------------------------------
     #def validate_cc( self ):

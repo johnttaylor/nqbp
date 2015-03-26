@@ -13,3 +13,6 @@
 ~~~~~; 1424745053; Mon, 23 Feb 2015 20:30:53; PUBLISH; DaVinci <build.machine@noemail.com>; 1.0.5; main; OUTCAST_nqbp-main-1.0.5; bug fix: yet another 'republish' because someone forgot to push the fix to fix!
 
 
+~~~~~; 1426823464; Thu, 19 Mar 2015 22:51:04; PUBLISH; DaVinci <build.machine@noemail.com>; 1.0.6; main; OUTCAST_nqbp-main-1.0.6; Bug fixes and improvements to the Kpit-GNURX toolchain
+
+

@@ -1,11 +1,15 @@
 OUTPUT_ARCH(rx)
+
+heap_size           = 10240;
+jlink_debugram_size = 1024;
+
 SECTIONS
 {
-	.fvectors 0xFFFFFFA0 : AT (0xFFFFFFA0)
+	.fvectors 0xFFFFFF80 : AT (0xFFFFFF80)
 	{
 		KEEP(*(.fvectors))
 	}
-	.text 0xFFFC0000 : AT (0xFFFC0000)
+	.text 0xFFF80000 : AT (0xFFF80000)
 	{
 		*(.text)
 		*(.text.*)
@@ -77,15 +81,22 @@ SECTIONS
 		__DTOR_END__ = .;
 		_mdata = .;
 	}
-	.istack 0x00001808 : AT (0x00001808)
+	.istack 0x00017FFC : AT (0x00017FFC)
 	{
 		_istack = .;
 	}
-	.ustack 0x00001708 : AT (0x00001708)
+	.ustack 0x000179BC : AT (0x000179BC)
 	{
 		_ustack = .;
 	}
-	.data 0x00001001 : AT (_mdata)
+    .debugger_ram 0x00000000 : AT (0x00000000)
+    {
+        _debugger_ram_start = .;
+        . = . + jlink_debugram_size;
+        _debugger_rame_end = .;
+    }
+	. = ALIGN(4);
+	.data : AT (_mdata)
 	{
 		_data = .;
 		*(.data)
@@ -111,4 +122,12 @@ SECTIONS
 		_ebss = .;
 		_end = .;
 	}
+	. = ALIGN(4);
+    .heap :
+    {
+        _heap_start = .;
+        *(.heap)
+        . = . + heap_size;
+        _heap_end = .;
+    }
 }

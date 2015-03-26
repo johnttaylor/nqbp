@@ -33,6 +33,7 @@ class BuildValues:
         self.linklibs   = ''
         self.linkscript = ''
         self.firstobjs  = ''
+        self.lastobjs   = ''
 
     def append(self,src):
         self.inc        += ' ' + src.inc        
@@ -44,6 +45,7 @@ class BuildValues:
         self.linklibs   += ' ' + src.linklibs 
         self.linkscript += ' ' + src.linkscript 
         self.firstobjs  += ' ' + src.firstobjs 
+        self.lastobjs   += ' ' + src.lastobjs 
   
         
     def copy(self):
@@ -57,6 +59,7 @@ class BuildValues:
         new.linklibs   = self.linklibs 
         new.linkscript = self.linkscript 
         new.firstobjs  = self.firstobjs 
+        new.lastobjs   = self.lastobjs 
        
         return new
             
@@ -374,7 +377,7 @@ class ToolChain:
         libs = self._build_library_list( libdirs )
         startgroup = self._linker_libgroup_start if libs != '' else ''
         endgroup   = self._linker_libgroup_end   if libs != '' else ''
-        ld = '{} {} {} {} {} {} {} {} {} {}'.format( 
+        ld = '{} {} {} {} {} {} {} {} {} {} {}'.format( 
                                             self._ld,
                                             self._link_output,
                                             self._all_opts.firstobjs,
@@ -384,7 +387,8 @@ class ToolChain:
                                             startgroup,
                                             libs,
                                             endgroup,
-                                            self._all_opts.linklibs
+                                            self._all_opts.linklibs,
+                                            self._all_opts.lastobjs
                                             )
                                           
         # do the compile

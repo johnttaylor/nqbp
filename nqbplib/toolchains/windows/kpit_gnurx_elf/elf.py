@@ -32,12 +32,13 @@ class ToolChain( base.ToolChain ):
         # Get root of the final output name
         exename_base = os.path.splitext(exename)[0] 
 
-        # Note: defaults to using 'optimized libc'
-        self._base_release.cflags   = self._base_release.cflags + '-mcpu=rx600 -Wa,-alhs=ME_CC_BASE_FILENAME.lst '
+        # 
+        self._base_release.cflags   = self._base_release.cflags + ' -mcpu=rx600 -Wa,-alhs=ME_CC_BASE_FILENAME.lst '
         self._base_release.asmflags = self._base_release.cflags
 
-        self._base_release.linklibs  = ' -Wl,--start-group -lstdc++ -lgcc -lnosys -loptc -loptm -Wl,--end-group '
-        self._base_release.linkflags = '-nostartfiles -Wl,-Map=' + exename_base + '.map'
+        #self._base_release.linklibs  = ' -Wl,--start-group -lstdc++ -lgcc -lnosys -loptc -loptm -Wl,--end-group '
+        self._base_release.linklibs  = ' -Wl,--start-group -lm -lc -lgcc -lstdc++ -Wl,--end-group '
+        self._base_release.linkflags = ' -nostartfiles -Wl,-Map={}.map '.format(exename_base)
 
         self._debug_release.cflags   = self._debug_release.cflags + ' -g2 -D DEBUG'
         self._debug_release.asmflags = self._debug_release.cflags

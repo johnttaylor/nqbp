@@ -15,7 +15,7 @@ from nqbplib import utils
 class ToolChain( base.ToolChain ):
 
     #--------------------------------------------------------------------------
-    def __init__( self, exename, prjdir, build_variants, default_variant='release' ):
+    def __init__( self, exename, prjdir, build_variants, default_variant='release', env_error=None ):
         base.ToolChain.__init__( self, exename, prjdir, build_variants, default_variant )
         self._ccname   = 'KPit Cummins - GNU RX-ELF'
         self._cc       = 'rx-elf-gcc'  
@@ -26,6 +26,8 @@ class ToolChain( base.ToolChain ):
 
         self._asm_ext  = 'asm'    
         self._asm_ext2 = 'S'    
+        
+        self._env_error = env_error;
         
         self._clean_list.extend( ('x', 'mot') )
         
@@ -78,10 +80,9 @@ class ToolChain( base.ToolChain ):
         
 
     #--------------------------------------------------------------------------
-    #def validate_cc( self ):
-    #   t = base.ToolChain.validate_cc(self)
-    #   if ( not 'i686-w64-mingw32' in t[1] ):
-    #       utils.output( "ERROR: Incorrect build of GCC (Target does NOT equal 'mingw32')" )
-    #       sys.exit(1)
-    #
-    #    return t
+    def validate_cc( self ):
+        if ( self._env_error != None ):
+            exit( "ERROR: The {} environment variable is not set.".format( self._env_error) )
+        
+        return base.ToolChain.validate_cc(self)
+

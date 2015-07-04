@@ -16,3 +16,6 @@
 ~~~~~; 1426823464; Thu, 19 Mar 2015 22:51:04; PUBLISH; DaVinci <build.machine@noemail.com>; 1.0.6; main; OUTCAST_nqbp-main-1.0.6; Bug fixes and improvements to the Kpit-GNURX toolchain
 
 
+~~~~~; 1429486340; Sun, 19 Apr 2015 18:32:20; PUBLISH; DaVinci <build.machine@noemail.com>; 1.1.0; main; OUTCAST_nqbp-main-1.1.0; 1) Complete the Kpit-gnurx toolchain. 2) minor bug fixes
+
+

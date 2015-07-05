@@ -78,7 +78,7 @@ def run( argv ):
     
     # Filenames
     fsmdiag = args['<basename>'] + ".cdd"
-    base    = args['<basename>'] + "Context" 
+    base    = args['<basename>'] + "Context_" 
     fsm     = args['<basename>'] 
     cfg     = 'codegen.cfg'
       
@@ -106,8 +106,26 @@ def run( argv ):
     # Post process the generated file(s) to work better with Doxygen
     cleanup_for_doxygen( fsm + ".h", args['<namespaces>'] + "::" + fsm )
       
+    # Generated File names
+    oldfsm    = fsm + '.h'
+    oldfsmcpp = fsm + '.cpp'
+    oldevt    = fsm + '_ext.h'
+    newfsm    = fsm + '_.h'
+    newfsmcpp = fsm + '_.cpp'
+    newevt    = fsm + '_ext_.h'
+    
+    # Post process the generated file(s) for proper header includes
+    cleanup_includes( oldfsm,    names, oldfsm, newfsm, oldevt, newevt, base + '.h' )
+    cleanup_includes( oldfsmcpp, names, oldfsm, newfsm, oldevt, newevt, base + '.h' )
       
-      
+    # Housekeeping for naming convention
+    utils.delete_file( newfsm )
+    utils.delete_file( newfsmcpp )
+    utils.delete_file( newevt )
+    os.rename( oldfsm, newfsm )
+    os.rename( oldfsmcpp, newfsmcpp ) 
+    os.rename( oldevt, newevt ) 
+ 
 #------------------------------------------------------------------------------
 def getContextMethods( fname ):
     actions = []
@@ -122,7 +140,14 @@ def getContextMethods( fname ):
                 actions.append( a.group(0).split(';')[0] )
     
     # Remove any duplicates from the grep'd methods
-    return list(set(actions)), list(set(guards))
+    return sorted(list(set(actions))), sorted(list(set(guards)))
+
+def path_namespaces( namespaces ):
+    flat = ''
+    for n in namespaces:
+        flat += n + "/"
+
+    return flat
 
 def flatten_namespaces( namespaces ):
     flat = ""
@@ -219,6 +244,26 @@ def cleanup_for_doxygen( headerfile, classname ):
     os.rename( tmpfile, headerfile )
                      
 
+def cleanup_includes( headerfile, namespaces, oldfsm, newfsm, oldevt, newevt, base ):
+    tmpfile = headerfile + ".tmp"
+    path    = path_namespaces( namespaces )
+    
+    with open( headerfile ) as inf:
+        with open( tmpfile, "w") as outf:  
+            for line in inf:
+                if ( line.find( '#include "{}"'.format(oldfsm) ) != -1):
+                    outf.write( '#include "{}{}"\n'.format(path, newfsm) )
+                elif ( line.find( '#include "{}"'.format(oldevt) ) != -1) :
+                    outf.write( '#include "{}{}"\n'.format(path, newevt) )
+                elif ( line.find( '#include "{}"'.format(base) ) != -1) :
+                    outf.write( '#include "{}{}"\n'.format(path, base) )
+                else:
+                    outf.write( line )
+    
+    os.remove( headerfile )
+    os.rename( tmpfile, headerfile )
+      
+      
 #------------------------------------------------------------------------------
 def geneatedCodegenConfig( fname, base, names ):
     cfg = '''# Output configuration options for the given language. Pipe them into a file for further use!

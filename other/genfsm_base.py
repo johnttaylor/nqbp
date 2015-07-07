@@ -86,7 +86,7 @@ def run( argv ):
     geneatedCodegenConfig( cfg, base, names )
         
     # Build Sinelabore command
-    cmd = 'java -jar -Djava.ext.dirs={} {}/codegen.jar -p CADIFRA -doxygen -o {} -l cppx {}'.format( sinpath, sinpath, fsm, fsmdiag )
+    cmd = 'java -jar -Djava.ext.dirs={} {}/codegen.jar -p CADIFRA -doxygen -o {} -l cppx -Trace {}'.format( sinpath, sinpath, fsm, fsmdiag )
     cmd = utils.standardize_dir_sep( cmd )
   
     # Invoke Sinelabore command
@@ -110,11 +110,15 @@ def run( argv ):
     oldfsm    = fsm + '.h'
     oldfsmcpp = fsm + '.cpp'
     oldevt    = fsm + '_ext.h'
+    oldtrace  = fsm + '_trace.h'
+    oldtrace2 = fsm + '_trace.java'
     newfsm    = fsm + '_.h'
     newfsmcpp = fsm + '_.cpp'
     newevt    = fsm + '_ext_.h'
+    newtrace  = fsm + '_trace_.h'
     
-    # Post process the generated file(s) for proper header includes
+    # Post process the generated file(s) 
+    cleanup_trace( oldfsmcpp, names, fsm, oldfsm, oldtrace, newtrace )
     cleanup_includes( oldfsm,    names, oldfsm, newfsm, oldevt, newevt, base + '.h' )
     cleanup_includes( oldfsmcpp, names, oldfsm, newfsm, oldevt, newevt, base + '.h' )
       
@@ -122,10 +126,99 @@ def run( argv ):
     utils.delete_file( newfsm )
     utils.delete_file( newfsmcpp )
     utils.delete_file( newevt )
+    utils.delete_file( newtrace )
+    utils.delete_file( oldtrace2 )  # remove unwanted JAVA file
     os.rename( oldfsm, newfsm )
     os.rename( oldfsmcpp, newfsmcpp ) 
     os.rename( oldevt, newevt ) 
- 
+    os.rename( oldtrace, newtrace ) 
+
+
+
+#------------------------------------------------------------------------------
+def cleanup_for_doxygen( headerfile, classname ):
+    tmpfile = headerfile + ".tmp"
+    with open( headerfile ) as inf:
+        with open( tmpfile, "w") as outf:  
+            for line in inf:
+                if ( line.find( 'Here is the graph that shows the state machine' ) == -1 ):
+                    outf.write( line )
+                else:
+                    outf.write( "/** \class {}\nHere is the graph that shows the state machine this class implements\n\dot\n".format( classname ) )
+    
+    os.remove( headerfile )
+    os.rename( tmpfile, headerfile )
+                     
+
+def cleanup_includes( headerfile, namespaces, oldfsm, newfsm, oldevt, newevt, base ):
+    tmpfile = headerfile + ".tmp"
+    path    = path_namespaces( namespaces )
+    
+    with open( headerfile ) as inf:
+        with open( tmpfile, "w") as outf:  
+            for line in inf:
+                if ( line.find( '#include "{}"'.format(oldfsm) ) != -1):
+                    outf.write( '#include "{}{}"\n'.format(path, newfsm) )
+                elif ( line.find( '#include "{}"'.format(oldevt) ) != -1) :
+                    outf.write( '#include "{}{}"\n'.format(path, newevt) )
+                elif ( line.find( '#include "{}"'.format(base) ) != -1) :
+                    outf.write( '#include "{}{}"\n'.format(path, base) )
+                else:
+                    outf.write( line )
+    
+    os.remove( headerfile )
+    os.rename( tmpfile, headerfile )
+      
+      
+def cleanup_trace( cppfile, namespaces, base, oldfsm, old_trace_headerfile, new_trace_headerfile ):
+    # Add xx_trace_.h include to xxx_.cpp
+    tmpfile  = cppfile + ".tmp"
+    path     = path_namespaces( namespaces )
+    newstate = 'stateVars = stateVarsCopy;'
+    
+    with open( cppfile ) as inf:
+        with open( tmpfile, "w") as outf:  
+            for line in inf:
+                outf.write( line )
+                if ( line.find( '#include "{}"'.format(oldfsm) ) != -1):
+                    outf.write( '#include "{}{}"\n'.format(path, new_trace_headerfile) )
+                elif ( line.find( newstate ) != -1 ):
+                    outf.write( '    CPL_SYSTEM_TRACE_MSG( SECT_, ( "New State=%s", getNameByState(getInnermostActiveState()) ));\n' )
+    
+    os.remove( cppfile )
+    os.rename( tmpfile, cppfile )
+
+    # add CPL trace hooks
+    tmpfile  = old_trace_headerfile + ".tmp"
+    path     = path_namespaces( namespaces )
+    trace_fn = 'TraceEvent(int evt);'
+    enum     = 'enum ' + base + 'TraceEvent'
+    comment  = '/* Simulation which'
+    
+    with open( old_trace_headerfile ) as inf:
+        with open( tmpfile, "w") as outf:  
+            for line in inf:
+                if ( line.find( '#define' ) != -1):
+                    outf.write( line )
+                    outf.write( '\n' )
+                    outf.write( '#include "Cpl/System/Trace.h"\n' )
+                    outf.write( '\n' )
+                    outf.write( '#define SECT_ "{}::{}"\n'.format( "::".join(namespaces), base ) )
+                    outf.write( '\n' )
+                elif ( line.find( trace_fn ) != -1 ):
+                    outf.write( '#define ' + base + 'TraceEvent(a) CPL_SYSTEM_TRACE_MSG( SECT_, ( "Old State=%s, Event=%s", getNameByState(getInnermostActiveState()), FsmTraceEvents[a] ));\n' )
+                elif ( line.find( enum ) != -1 ):
+                    pass
+                elif ( line.find( comment ) != -1 ):
+                    pass
+                else:
+                    outf.write( line )
+                
+    os.remove( old_trace_headerfile )
+    os.rename( tmpfile, old_trace_headerfile )
+     
+     
+     
 #------------------------------------------------------------------------------
 def getContextMethods( fname ):
     actions = []
@@ -229,41 +322,6 @@ def generatedContextClass( class_name, namespaces,  header, actions, guards ):
     
 
 
-#------------------------------------------------------------------------------
-def cleanup_for_doxygen( headerfile, classname ):
-    tmpfile = headerfile + ".tmp"
-    with open( headerfile ) as inf:
-        with open( tmpfile, "w") as outf:  
-            for line in inf:
-                if ( line.find( 'Here is the graph that shows the state machine' ) == -1 ):
-                    outf.write( line )
-                else:
-                    outf.write( "/** \class {}\nHere is the graph that shows the state machine this class implements\n\dot\n".format( classname ) )
-    
-    os.remove( headerfile )
-    os.rename( tmpfile, headerfile )
-                     
-
-def cleanup_includes( headerfile, namespaces, oldfsm, newfsm, oldevt, newevt, base ):
-    tmpfile = headerfile + ".tmp"
-    path    = path_namespaces( namespaces )
-    
-    with open( headerfile ) as inf:
-        with open( tmpfile, "w") as outf:  
-            for line in inf:
-                if ( line.find( '#include "{}"'.format(oldfsm) ) != -1):
-                    outf.write( '#include "{}{}"\n'.format(path, newfsm) )
-                elif ( line.find( '#include "{}"'.format(oldevt) ) != -1) :
-                    outf.write( '#include "{}{}"\n'.format(path, newevt) )
-                elif ( line.find( '#include "{}"'.format(base) ) != -1) :
-                    outf.write( '#include "{}{}"\n'.format(path, base) )
-                else:
-                    outf.write( line )
-    
-    os.remove( headerfile )
-    os.rename( tmpfile, headerfile )
-      
-      
 #------------------------------------------------------------------------------
 def geneatedCodegenConfig( fname, base, names ):
     cfg = '''# Output configuration options for the given language. Pipe them into a file for further use!

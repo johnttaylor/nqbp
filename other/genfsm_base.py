@@ -287,8 +287,8 @@ def generatedContextClass( class_name, namespaces,  header, actions, guards ):
     fname = class_name + '.h'
     flat  = flatten_namespaces(namespaces)
     with open(fname,"w") as f:
-        f.write( "#ifndef {}{}_h_\n".format( flat, class_name ) )
-        f.write( "#define {}{}_h_\n".format( flat, class_name ) )
+        f.write( "#ifndef {}{}x_h_\n".format( flat, class_name ) )
+        f.write( "#define {}{}x_h_\n".format( flat, class_name ) )
         f.write( header )
         f.write( "\n\n/* This file is auto-generated DO NOT MANUALLY EDIT this file! */\n\n" )
         f.write( "\n" )

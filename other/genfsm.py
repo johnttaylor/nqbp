@@ -18,8 +18,20 @@ from other import genfsm_base
 sys.argv.append('')
 sys.argv.append('')
 
+
+###############################################################
+# BEGIN EDITS HERE
+###############################################################
+
 # Generate FSM#1, where [1]:= Diagram name, [2]:= Namespace(s).
 sys.argv[1] = 'Example1'
 sys.argv[2] = 'Rte::Db::Record'
 genfsm_base.run( sys.argv )
+
+# Generate FSM#2, where [1]:= Diagram name, [2]:= Namespace(s).
+#sys.argv[1] = 'Example2'
+#sys.argv[2] = 'Rte::Db::Record'
+#genfsm_base.run( sys.argv )
+
+
 

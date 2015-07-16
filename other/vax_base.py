@@ -119,8 +119,10 @@ Where:
     <lcmd>      Single character that selects an optional L-Command.  See 
                 below for a list of L-Commands.
 
-    <operand>   Optional string input to Commands.
+    <operand>   Optional string input for L/R-Commands.
                 
+    <rcmd>      Single character that selects an optional R-Command.  See 
+                below for a list of R-Commands.
 
     
 
@@ -135,6 +137,9 @@ subsitution value contains multiple values, then the number of iteration is the
 maximum of the combined iterators.  If an multi-valued entry exhausted its
 lists before the overall iteration process is finished, its  last value is used
 for the remaining iterations.
+
+NOTE: Iteration ONLY APPLIES to subscripts.  The iteration rules are not 
+      applied when processing the top level template.
 
 
 
@@ -216,7 +221,13 @@ FORMAT #1 - Reference an external template file
                   substitution map, etc.  ITERATION NOTE: If a leading '*'
                   characacter is used when specifying the token name, then ALL 
                   values of the token are used to create the entry in the 
-                  substituion map.  
+                  substituion map AND the entry will NOT trigger the iteration
+                  mechnaism for the subscript.  If the iteration mechanism is
+                  trigger via a different multi-valued (non leading '*') token,
+                  the multi-valued tokens that start with a '*' will be treated
+                  as single valued token with respect to iteration within the
+                  subscript.
+                   
                   
                   
 

@@ -45,6 +45,8 @@ Options:
                    specified template file and/or subscript template files.
   --outcast-pkg    Sets the 'root path' for the _RELPATH token to the current
                    Package as defined by the Outcast command: 'orc --qry-pkg'
+  -v               Be verbose
+  -g               Display f4 debug information
   -?, --guide      Display user guide.
   -h, --help       Display command help.
         
@@ -69,41 +71,54 @@ def run( argv ):
 
     # Process command line args...
     args = docopt(usage, version="0.0.1" )
-    print args
 
     # Print guide
     if ( args['--guide'] ):
         print guide
         sys.exit()
         
-    # Build the Header (i.e. parse the list of token IDs for the template)
-    header, infd = build_header_from_file( args )
-    print header
-
     # Build the Substitution Map
-    smap = build_map( args )
-    print smap
+    smap  = build_map( args )
+    iters = Iteration()
    
-    # Expand the template file
-    outfd = Stdout( args['-o'] )
-    expand_template( infd, header, smap, outfd, args )
+    # Initial parse of the Template file
+    header, content = read_template_file( args['<tname>'], iters, args )
 
-    # housekeeping
-    infd.close()
+    # Expand the template file
+    outfd = Output( args['-o'] )
+    expand_content( header, content, smap, iters, outfd, args )
     outfd.close()
 
 #------------------------------------------------------------------------------
-def expand_template( infd, header, smap, outfd, args ):
-    lnum = 0
-    for l in infd:
-        eline = expand_line( l, header, smap, outfd, lnum, args )
-        if ( eline != None ):
-            outfd.write( eline )
-        lnum += 1
+###
+def expand_content( header, content, smap, iters, outfd, args ):
+    # Verbose
+    if ( args['-v'] ):
+        print "{}Expanding: {}, iters={} ...".format( iters.get_verbose_indent(), header.get_fname(), iters.get_max_iter_count() )
 
+    # Debug
+    if ( args['-g'] ):
+        print "{}{}".format( iters.get_verbose_indent(), header )
+        print "{}{}".format( iters.get_verbose_indent(), smap )
 
-def expand_line( line, header, smap, outfd, lnum, args ):
-    outline = ""
+    loop = True
+    while( loop ):
+        # Verbose
+        if ( args['-v'] ):
+            print "{}  Iteration={}, iter_value={} ...".format( iters.get_verbose_indent(), iters.get_iter_number(), iters.get_iter_value() )
+        
+        lnum = 0
+        for l in content:
+            eline = expand_line( l, header, smap, iters, outfd, lnum, args )
+            if ( eline != None ):
+                outfd.write( eline )
+            lnum += 1
+
+        loop = iters.next_iteration()
+
+###
+def expand_line( line, header, smap, iters, outfd, lnum, args ):
+    outline = iters.get_indent()
     escaped = False
 
     # Loop though all characters in the line
@@ -122,14 +137,13 @@ def expand_line( line, header, smap, outfd, lnum, args ):
             idx     += 1
             
         # Check for Subscripting
-        result = subscripting( line, idx, header, smap, outfd, lnum, args )
-        if ( result == None ):
+        if ( subscripting( line, idx, header, smap, iters, outfd, lnum, args ) ):
             return None
 
             
         # Found the mark character
         elif ( line[idx] == header.get_mark() ):
-            text, consumed_count = substitute_token( line[idx+1:], header, smap, idx, lnum, args )
+            text, consumed_count = substitute_token( line[idx+1:], header, smap, iters, idx, lnum, args )
             outline += text
             idx     += consumed_count + 1
             
@@ -141,11 +155,12 @@ def expand_line( line, header, smap, outfd, lnum, args ):
     return outline
     
         
-def substitute_token( line, header, smap, col, lnum, args ):
+###
+def substitute_token( line, header, smap, iters, col, lnum, args ):
     # extract the token
     end = line.find( header.get_mark() )
     if ( end == -1 ):
-        sys.exit( "ERROR: Bad token specified at #CONTENT line offset# {}, col# {}".format( lnum, col+1 ) ) 
+        sys.exit( "ERROR: Bad token specified. File={}, line# {}, col# {}".format( header.get_fname(), header.get_line_count() + lnum, col+1 ) ) 
     token     = line[:end]
     end_idx   = end
     consumed  = len(token) + 1
@@ -158,50 +173,213 @@ def substitute_token( line, header, smap, col, lnum, args ):
     roper     = None
 
     # extract the L-Command (if there is one)
-    lmark = line.find( '<' )
+    lmark = token.find( '<' )
     if ( lmark != -1 ):
-        lcmd     = line[0:1]
-        loper    = line[1:lmark]
+        lcmd      = token[0:1]
+        loper     = token[1:lmark]
         start_idx = lmark+1
 
     # extract the R-Command (if there is one)
     rmark = line.find( '>' )
     if ( rmark != -1 ):
         end_idx = rmark
-        rcmd   = line[rmark+1:rmark+2]
-        roper  = line[rmark+2:-2]
+        rcmd    = token[rmark+1:rmark+2]
+        roper   = token[rmark+2:]
+
  
     # extract the token_id
     token_id = line[start_idx:end_idx]
-                 
+    
+    # Check for literal value
+    if ( (token_id.startswith('"') and token_id.endswith('"')) or (token_id.startswith("'") and token_id.endswith("'")) ):
+        entry = SMapEntry( token_id[1:-1], args['-d'] )
+
     # Check for special tokens
-    if ( token_id.startswith( '_' ) ):
+    elif ( token_id.startswith( '_' ) ):
         entry = process_special_token( token_id, args )
        
     # Look-up token id
     else:
         tidx = header.find_token( token_id )
         if ( tidx == -1 ):
-            sys.exit( "ERROR: Token - {} - not defined in the template header (line offset={}, col={}).".format( token_id, lnum, col+1 ) )
+            sys.exit( "ERROR: Token - {} - not defined in the template header. File={}, line# {}, col# {}".format( token_id, header.get_fname(), header.get_line_count() + lnum, col+1 ) ) 
         entry = smap.get_entry( tidx )
-
-    # Expand value
-    new_value = entry.get_value()
-    # apply L-command
-    # apply R-Command
-
+        if ( entry == None ):
+            sys.exit( "ERROR: More Token IDs than Map entries (token id number={}, map count={}). File={}, line# {}, col# {}".format( tidx+1, smap.get_num_entries(), header.get_fname(), header.get_line_count() + lnum, col+1 ) ) 
+            
+    # apply L/R commands
+    new_value = apply_token_commands( entry, iters, lcmd, loper, rcmd, roper, header, args, lnum, col )
 
     # Return final value
     return new_value, consumed
 
 
+###
+def apply_token_commands( entry, iters, lcmd, loper, rcmd, roper, header, args, lnum, col ):
+    
+    # Get value
+    raw_value = entry.get_value( iters.get_iter_number() )
+
+    # Process R-Command first    
+    if ( rcmd != None ):
+        if ( rcmd == '+' ):
+            if ( entry.get_count() > 1 ):
+                return do_rcmd_concatenate( entry, iters, roper, lcmd, loper, header, args, lnum, col )
+        else:
+            sys.exit( "ERROR: Unsupported R-Command:{}. File={}, line# {}, col# {}".format( rcmd, header.get_fname(), header.get_line_count() + lnum, col+1 ) ) 
+            
+    # No R-Commands -->process L-Commands
+    elif ( lcmd != None ):
+        return process_lcmds( raw_value, lcmd, loper, header, args, lnum, col )
+
+    # No command specified
+    else:
+        return raw_value
+
+
+###
+def do_rcmd_concatenate( entry, iters, roper, lcmd, loper, header, args, lnum, col ):
+    new_value = process_lcmds( entry.get_value( 0 ), lcmd, loper, header, args, lnum, col )
+    
+    for i in range(1, entry.get_count() ):
+        new_value += roper
+        new_value += process_lcmds( entry.get_value( i ), lcmd, loper, header, args, lnum, col )
+        
+    return new_value 
+ 
+    
+###
+def process_lcmds( raw_value, lcmd, loper, header, args, lnum, col ):
+
+    # Upper case first letter
+    if ( lcmd == 'u' ):
+        return re.sub('([a-zA-Z])', lambda x: x.groups()[0].upper(), raw_value, 1)
+
+    # Upper case ALL leters
+    elif ( lcmd == 'U' ):
+        return raw_value.upper() 
+
+    # Lower case first letter
+    elif ( lcmd == 'l' ):
+        return re.sub('([a-zA-Z])', lambda x: x.groups()[0].lower(), raw_value, 1)
+
+    # Lower case ALL leters
+    elif ( lcmd == 'L' ):
+        return raw_value.lower()
+
+    # Add value
+    elif ( lcmd == '+' and loper != None ):
+        voper,foper = string_to_number(loper)
+        v,f         = string_to_number(raw_value)
+        if ( foper and f ):
+            num = v + voper
+            return str(num)
+        else:
+            return raw_value
+
+    # Subtract value
+    elif ( lcmd == '-' and loper != None ):
+        voper,foper = string_to_number(loper)
+        v,f         = string_to_number(raw_value)
+        if ( foper and f ):
+            num = v - foper
+            return str(num)
+        else:
+            return raw_value
+
+
+    # Replace value
+    elif ( lcmd == 'r' and loper != None ):
+        return loper
+        
+    # Unsupport Command    
+    else:
+        sys.exit( "ERROR: Unsupported L-Command:{}. File={}, line# {}, col# {}".format( lcmd, header.get_fname(), header.get_line_count() + lnum, col+1 ) ) 
+  
+    
+           
+###
 def process_special_token( token_id, args ):
     return None
 
-def subscripting( line, idx, header, smap, outfd, lnum, args ):
+###
+def subscripting( line, idx, header, smap, iters, outfd, lnum, args ):
+    marker = header.get_mark() + "_SUBSCRIPT" 
+    if ( line[idx:].startswith( marker ) ):   
+        process_subscript_statement( line[idx+len(marker):], header, iters, smap, outfd, line[:idx], lnum, args )
+        return True
+               
     return False
 
+###
+def process_subscript_statement( parms, header, iters, smap, outfd, indent, lnum, args ):
+    # Strip off S-CMD(s) if any
+    scmd_mark   = parms.find( ':' )
+    scmd_string = ''
+    if ( scmd_mark != -1 ):
+        scmd_string = parms[scmd_mark+1:]
+        parms       = parms[:scmd_mark]
+
+    # Process token values
+    sargs = parms.split(',')
+    if ( len(args) == 0 ):
+        sys.exit( "ERROR: Invalid _SUBSCRIPT statement. File={}, line# {}".format( header.get_fname(), header.get_line_count() + lnum ) ) 
+
+    # Open template file
+    newheader, newcontent = read_template_file( sargs[1].strip(), iters, args )
+
+    # Build the map
+    newmap = SMap( args['-d'] )
+    if ( len(sargs) > 1 ):
+        for t in range(2, len(sargs)):
+            token = normalize_entry( sargs[t] ) 
+            entry = convert_to_map_entry( token, header, smap, iters, args, lnum )
+            newmap.add_entry( entry )
+
+    # Build iteration info
+    newiters = calc_iterations( indent, newmap, scmd_string, iters.get_indent_level() )
+    
+    # Expand Subscript
+    expand_content( newheader, newcontent, newmap, newiters, outfd, args )
+   
+
+###
+def calc_iterations( indent, smap, scmd_string, old_level ):
+    max_iter_count = 1
+    for e in smap.get_entries():
+        if ( e.get_iter_count() > max_iter_count ):
+            max_iter_count = e.get_iter_count()
+
+    return Iteration( indent, max_iter_count, indent_level = old_level + 1 )
+    
+
+###
+def convert_to_map_entry( token_id, header, smap, iters, args, lnum ):
+
+    # Check for pass all or pass iteration
+    use_all = False
+    if ( token_id.startswith( '*' ) ):
+        use_all  = True
+        token_id = token_id[1:]
+
+    # Get map index for token ID
+    idx = header.find_token( token_id )
+    if ( idx == -1 ):
+        sys.exit( "ERROR: _SUBSCRIPT statement - Invalid token name. File={}, line# {}".format( header.get_fname(), header.get_line_count() + lnum ) ) 
+    entry = smap.get_entry( idx )
+    if ( entry == None ):
+        sys.exit( "ERROR: _SUBSCRIPT statement - No matching map entry for token_id={}. File={}, line# {}".format( token_id, header.get_fname(), header.get_line_count() + lnum ) ) 
+        
+    # Construct Map entery for token id                
+    force = True if use_all else False
+    return SMapEntry( entry.get_raw_value(), args['-d'], force )
+
+#    def __init__( self, value, delimiter, force_no_iter_count=False ):
+#    def __init__( self, indent="", number_of_iterations=1, initial_value=0, step_size=1 ):
+#    <mark>_SUBSCRIPT,<fname> [,[*]<tokenA>[,[*]<tokenB>]....[,[*]<tokenN>][:<scmd> [<args>...]]*
+
 #------------------------------------------------------------------------------
+###
 def build_map( args ):
     # Select source of the map
     if ( args['-f'] ):
@@ -212,7 +390,7 @@ def build_map( args ):
         sys.exit( "ERROR: No substitution map entries provided. Use 'f4 -h' for help" )
 
     # build the map
-    smap = SMap( args['-r'], args['-d'] )
+    smap = SMap( args['-d'] )
     for entry in input:
         e = SMapEntry( normalize_entry( entry ), args['-d'] )
         smap.add_entry( e )
@@ -220,6 +398,7 @@ def build_map( args ):
     return smap
 
 
+###
 def normalize_entry( raw_entry ):
     e = raw_entry.strip();
     if ( e.startswith('"') and e.endswith('"') ):
@@ -228,7 +407,9 @@ def normalize_entry( raw_entry ):
         e = e[1:-1]
     
     return e
+
                         
+###
 def open_map_file( fname ):
     try:
         inf = open( fname )
@@ -238,36 +419,56 @@ def open_map_file( fname ):
 
 
 #------------------------------------------------------------------------------
-def build_header_from_file( args ):
-    template     = args['<tname>']
-    header       = None
-    header_found = False
+###
+def read_template_file( template, iters,  args ):
+    header        = None
+    header_found  = False
+    content       = []
+    content_found = False
+    header_lnums  = 1
+
+    # Read template file
     try:
         infile = open_template_file( template, args )
         for line in infile:
-            if ( line.startswith(';') ):
-                pass
-            elif ( not line.strip() ):
-                pass
-            elif ( line.startswith( '#HEADER' ) ):
-                header       = process_header( line, args )
-                header_found = True
-            elif ( header_found and line.startswith( '#CONTENT') ):
-                return header, infile
-            elif ( header_found ):
-                header.add_token( line.strip().split(',')[0] )
+            # Load #CONTENT section into memory
+            if ( content_found ):
+                content.append( line )
+
+            # Parse #HEADER Section
+            else:
+                header_lnums += 1
+                if ( line.startswith(';') ):
+                    pass
+                elif ( not line.strip() ):
+                    pass
+                elif ( line.startswith( '#HEADER' ) ):
+                    header       = process_header( template, line, args )
+                    header_found = True
+                elif ( header_found and line.startswith( '#CONTENT') ):
+                    content_found = True
+                elif ( header_found ):
+                    header.add_token( line.split()[0].split(',')[0].strip() )
 
             
     except EnvironmentError:
         infile.close()
-        sys.exit( "ERROR: Cannot read from template file: {}".format( template ) )
+        sys.exit( "ERROR: Cannot read template file: {}".format( template ) )
 
-    # If I get here than the template file is malformed.
+    # Housekeeping
     infile.close()
-    sys.exit( "ERROR: Invalid Template file ({}).  Missing #HEADER and/or #CONTENT markers.".format( template ) )
-    
 
-def process_header( line, args ):
+    # Trap errors
+    if ( content_found == False or header_found == False ):
+        sys.exit( "ERROR: Invalid Template file ({}).  Missing #HEADER and/or #CONTENT markers.".format( template ) )
+    
+    # Return results
+    header.set_line_count( header_lnums )
+    return header, content
+
+
+###
+def process_header( fname, line, args ):
     options = line.split(',')
     count   = len(options)
     mark    = '$'
@@ -279,9 +480,10 @@ def process_header( line, args ):
         if ( count > 2 ):
             esc = options[2].strip()
 
-    return Header( mark, esc )
+    return Header( fname, args['-r'], mark, esc )
         
 
+###
 def open_template_file( fname, args ):
     # Search CWD
     try:
@@ -312,12 +514,16 @@ def open_template_file( fname, args ):
     sys.exit( "ERROR: Cannot open/find template file: {}".format( fname ) )
     
           
+###
 class Header(object):
-    def __init__( self, mark, esc ):
+    def __init__( self, fname, root_path, mark, esc ):
         self.num_tokens = 0
         self.mark       = mark
         self.esc        = esc
         self.tokens     = []
+        self.lcount     = 0
+        self.fname      = fname
+        self.root_path  = root_path
 
     def get_mark( self ):
         return self.mark
@@ -339,12 +545,26 @@ class Header(object):
         # If I get here -->no matching token
         return -1
 
+    def set_line_count( self, count ):
+        self.lcount = count
+
+    def get_line_count( self ):
+        return self.lcount
+
+    def get_fname( self ):
+        return self.fname
+
+    def get_root_path( self ):
+        return self.root_path
+                
+
     def __repr__(self):
         ret = "HEADER: count={}, mark={}, esc={}, Tokens={}".format( self.num_tokens, self.mark, self.esc, self.tokens )
         return ret
 
 
 #------------------------------------------------------------------------------
+###
 class SMapEntry(object):
     def __init__( self, value, delimiter, force_no_iter_count=False ):
         self.org       = value
@@ -369,14 +589,14 @@ class SMapEntry(object):
         return self.itercount
 
     def __repr__(self):
-        ret = "ENTRY: count={}, icount={}, values={}".format( self.count, self.itercount, self.values )
+        ret = "<count={}, icount={}, values={}>".format( self.count, self.itercount, self.values )
         return ret
 
 
+###
 class SMap(object):
-    def __init__( self, rootpath, delimiter=',' ):
+    def __init__( self, delimiter=',' ):
         self.num_entries = 0
-        self.root_path   = rootpath
         self.delimiter   = delimiter
         self.entries     = []
         
@@ -396,9 +616,6 @@ class SMap(object):
         else:
             return self.entries[index]
 
-    def get_root_path( self ):
-        return self.root_path
-                
         
     def __repr__(self):
         ret = "SMAP: count={}, del={}. Entries={}".format( self.num_entries, self.delimiter, self.entries )
@@ -406,7 +623,21 @@ class SMap(object):
 
 
 #------------------------------------------------------------------------------
-class Stdout(object):
+###
+def string_to_number(s):
+    try:
+        z = int(s)
+        return z, True
+    except ValueError:
+        try:
+            z = float(s)
+            return z, True
+        except ValueError:
+            return s, False
+
+
+###
+class Output(object):
     def __init__( self, outname=None ):
         if ( outname != None ):
             try:
@@ -426,7 +657,50 @@ class Stdout(object):
     def close( self ):
         if ( self.handle is not sys.stdout ):
             self.handle.close()     
+
             
+
+###
+class Iteration(object):
+    def __init__( self, indent="", number_of_iterations=1, initial_value=0, step_size=1, indent_level=0 ):
+        self.max_iter     = number_of_iterations
+        self.iter_num     = 0
+        self.iter_value   = initial_value
+        self.iter_step    = step_size        
+        self.indent       = indent
+        self.indent_level = indent_level
+        self.verbose      = "" if indent_level == 0 else "  " * indent_level
+
+    def next_iteration( self ):
+        if ( self.iter_num+1 < self.max_iter ):
+            self.iter_num   += 1
+            self.iter_value += self.iter_step
+            return True
+        else:
+            return False
+            
+    def get_iter_number( self ):
+        return self.iter_num
+        
+    def get_iter_value( self ):
+        return self.iter_value
+        
+    def get_max_iter_count( self ):
+        return self.max_iter
+    
+    def get_indent( self ):
+        return self.indent
+            
+    def get_indent_level( self ):
+        return self.indent_level
+   
+    def get_verbose_indent( self ):
+        return self.verbose
+
+    def __repr__(self):
+        ret = "current={}, max={}, val={}, indent_len={}".format( self.iter_num, self.max_iter, self.iter_value, len(self.indent) )
+        return ret
+        
                 
 #------------------------------------------------------------------------------
 guide = r"""
@@ -587,6 +861,8 @@ list of currently supported L-Commands:
     -   - Subtracts the value the L-cmd operand parameter to the substitution 
           value. If the substitution value is not a numeric value, nothing is 
           done.
+    r   - Replace the token value with the L-cmd operand parameter.  This is
+          typically used in conjectino with the R-Cmd '+' operator.
 
 
 
@@ -653,7 +929,7 @@ NOTE: When the subscripting occurs, the entire contents of the subscript is
 
 FORMAT #1 - Reference an external template file
 
-    <mark>_SUBSCRIPT,<fname> [,[*]<tokenA>[,[*]<tokenB>]....[,[*]<tokenN>]:[<scmd> [<args>...]]*
+    <mark>_SUBSCRIPT,<fname> [,[*]<tokenA>[,[*]<tokenB>]....[,[*]<tokenN>][:<scmd> [<args>...]]*
     
     Where:
         fname:=   File name of the template to include.  The template file is

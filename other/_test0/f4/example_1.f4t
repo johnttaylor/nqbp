@@ -1,13 +1,24 @@
 ; Simple Script
 #HEADER
 
+namespaces
 className
 flagName,  Name of the flag variable 
 
 ; Begin Expansion Text
 #CONTENT
+///
+namespace $u<namespaces>+ { namspace $ {
+
+/// Test literal token id = [$"hello world"$]
+/// Another test literal token id: $+11<"100"$ == 111?
+
+///
 class $u<className$
 {
 public:
     bool $l<flagName$;
 };
+
+$r}<namespaces>+;$;
+

@@ -14,7 +14,7 @@ myClass            Name of My class that will contain the embedded class
 
 class $myClass$
 {
-    $_SUBSCRIPT, example_1.f4t, *namespaces, embeddedNames, flagName
+    $_SUBSCRIPT, example_1.f4t, embeddedNames, flagName
 };
 
 #endif

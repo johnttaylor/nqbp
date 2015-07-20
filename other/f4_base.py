@@ -4,6 +4,7 @@
 import sys   
 import os
 import subprocess
+from datetime import datetime
 #
 from nqbplib.docopt.docopt import docopt
 from nqbplib import utils
@@ -52,6 +53,7 @@ Options:
         
    
 NOTES:
+    o DO NOT USE tabs in your template files.
     o The search order for template files is as follows:
         1) The current working directory is searched first
         2) Then the --local PATH (if there is one)
@@ -101,29 +103,35 @@ def expand_content( header, content, smap, iters, outfd, args ):
         print "{}{}".format( iters.get_verbose_indent(), header )
         print "{}{}".format( iters.get_verbose_indent(), smap )
 
-    loop = True
+    loop        = True
     while( loop ):
         # Verbose
         if ( args['-v'] ):
             print "{}  Iteration={}, iter_value={} ...".format( iters.get_verbose_indent(), iters.get_iter_number(), iters.get_iter_value() )
         
         lnum = 0
+        skip = 0
         for l in content:
-            eline = expand_line( l, header, smap, iters, outfd, lnum, args )
-            if ( eline != None ):
-                outfd.write( eline )
+            if ( skip > 0 ):
+                skip -= 1
+            else:
+                eline, skip = expand_line( l, header, smap, iters, outfd, content, lnum, args )
+                if ( eline != None ):
+                    outfd.write( eline )
+                
             lnum += 1
 
         loop = iters.next_iteration()
 
 ###
-def expand_line( line, header, smap, iters, outfd, lnum, args ):
+def expand_line( line, header, smap, iters, outfd, content, lnum, args ):
     outline = iters.get_indent()
     escaped = False
 
     # Loop though all characters in the line
     idx   = 0
     count = len(line)
+    skip  = 0   
     while( idx < count ):
 
         # Handle esacping the mark & escape characters
@@ -138,11 +146,15 @@ def expand_line( line, header, smap, iters, outfd, lnum, args ):
             
         # Check for Subscripting
         if ( subscripting( line, idx, header, smap, iters, outfd, lnum, args ) ):
-            return None
+            return None, skip
 
-            
+        # Check for Inlined subscripting
+        skip = inlining( line, idx, header, smap, iters, outfd, content, lnum, args )
+        if ( skip > 0 ):
+            return None, skip
+             
         # Found the mark character
-        elif ( line[idx] == header.get_mark() ):
+        if ( line[idx] == header.get_mark() ):
             text, consumed_count = substitute_token( line[idx+1:], header, smap, iters, idx, lnum, args )
             outline += text
             idx     += consumed_count + 1
@@ -152,7 +164,7 @@ def expand_line( line, header, smap, iters, outfd, lnum, args ):
             outline += line[idx]   
             idx     += 1
             
-    return outline
+    return outline, skip
     
         
 ###
@@ -180,7 +192,7 @@ def substitute_token( line, header, smap, iters, col, lnum, args ):
         start_idx = lmark+1
 
     # extract the R-Command (if there is one)
-    rmark = line.find( '>' )
+    rmark = token.find( '>' )
     if ( rmark != -1 ):
         end_idx = rmark
         rcmd    = token[rmark+1:rmark+2]
@@ -192,11 +204,11 @@ def substitute_token( line, header, smap, iters, col, lnum, args ):
     
     # Check for literal value
     if ( (token_id.startswith('"') and token_id.endswith('"')) or (token_id.startswith("'") and token_id.endswith("'")) ):
-        entry = SMapEntry( token_id[1:-1], args['-d'] )
+        entry = SMapEntry( token_id[1:-1], None )
 
     # Check for special tokens
     elif ( token_id.startswith( '_' ) ):
-        entry = process_special_token( token_id, args )
+        entry = process_special_token( token_id, iters, args )
        
     # Look-up token id
     else:
@@ -225,6 +237,25 @@ def apply_token_commands( entry, iters, lcmd, loper, rcmd, roper, header, args, 
         if ( rcmd == '+' ):
             if ( entry.get_count() > 1 ):
                 return do_rcmd_concatenate( entry, iters, roper, lcmd, loper, header, args, lnum, col )
+       
+        elif ( rcmd == '#' ):
+            return do_rcmd_count( entry, iters, roper, lcmd, loper, header, args, lnum, col )
+
+        elif ( rcmd == ':' ):
+            return do_rcmd_index( entry, iters, roper, lcmd, loper, header, args, lnum, col )
+
+        elif ( rcmd == 'f' ):
+            return do_rcmd_first( entry, iters, roper, lcmd, loper, header, args, lnum, col )
+
+        elif ( rcmd == 'F' ):
+            return do_rcmd_not_first( entry, iters, roper, lcmd, loper, header, args, lnum, col )
+
+        elif ( rcmd == 'l' ):
+            return do_rcmd_last( entry, iters, roper, lcmd, loper, header, args, lnum, col )
+
+        elif ( rcmd == 'L' ):
+            return do_rcmd_not_last( entry, iters, roper, lcmd, loper, header, args, lnum, col )
+
         else:
             sys.exit( "ERROR: Unsupported R-Command:{}. File={}, line# {}, col# {}".format( rcmd, header.get_fname(), header.get_line_count() + lnum, col+1 ) ) 
             
@@ -239,14 +270,68 @@ def apply_token_commands( entry, iters, lcmd, loper, rcmd, roper, header, args, 
 
 ###
 def do_rcmd_concatenate( entry, iters, roper, lcmd, loper, header, args, lnum, col ):
-    new_value = process_lcmds( entry.get_value( 0 ), lcmd, loper, header, args, lnum, col )
+    new_value = entry.get_value( 0 )
+    if ( lcmd != None ):
+        new_value = process_lcmds( new_value, lcmd, loper, header, args, lnum, col )
     
     for i in range(1, entry.get_count() ):
         new_value += roper
-        new_value += process_lcmds( entry.get_value( i ), lcmd, loper, header, args, lnum, col )
-        
+        if ( lcmd != None ):
+            new_value += process_lcmds( entry.get_value( i ), lcmd, loper, header, args, lnum, col )
+        else:
+            new_value += entry.get_value( i )
+
     return new_value 
  
+                   
+###
+def do_rcmd_count( entry, iters, roper, lcmd, loper, header, args, lnum, col ):
+    new_value = str(entry.get_count())
+    if ( lcmd != None ):
+        new_value = process_lcmds( new_value, lcmd, loper, header, args, lnum, col )
+
+    return new_value 
+
+###
+def do_rcmd_index( entry, iters, roper, lcmd, loper, header, args, lnum, col ):
+    if ( roper == None ):
+        sys.exit( "ERROR: Missing operand for R-Command:{}. File={}, line# {}, col# {}".format( rcmd, header.get_fname(), header.get_line_count() + lnum, col+1 ) ) 
+
+    new_value = entry.get_value( int(roper) )
+    if ( lcmd != None ):
+        new_value = process_lcmds( new_value, lcmd, loper, header, args, lnum, col )
+
+    return new_value 
+
+
+###
+def do_rcmd_first( entry, iters, roper, lcmd, loper, header, args, lnum, col ):
+    if ( iters.get_iter_number() == 0 ):
+        return entry.get_value()
+    else:
+        return ""
+
+###
+def do_rcmd_not_first( entry, iters, roper, lcmd, loper, header, args, lnum, col ):
+    if ( iters.get_iter_number() != 0 ):
+        return entry.get_value()
+    else:
+        return ""
+
+###
+def do_rcmd_last( entry, iters, roper, lcmd, loper, header, args, lnum, col ):
+    if ( iters.get_iter_number() == iters.get_max_iter_count() - 1 ):
+        return entry.get_value()
+    else:
+        return ""
+
+###
+def do_rcmd_not_last( entry, iters, roper, lcmd, loper, header, args, lnum, col ):
+    if ( iters.get_iter_number() != iters.get_max_iter_count() - 1 ):
+        return entry.get_value()
+    else:
+        return ""
+
     
 ###
 def process_lcmds( raw_value, lcmd, loper, header, args, lnum, col ):
@@ -282,7 +367,7 @@ def process_lcmds( raw_value, lcmd, loper, header, args, lnum, col ):
         voper,foper = string_to_number(loper)
         v,f         = string_to_number(raw_value)
         if ( foper and f ):
-            num = v - foper
+            num = v - voper
             return str(num)
         else:
             return raw_value
@@ -299,8 +384,30 @@ def process_lcmds( raw_value, lcmd, loper, header, args, lnum, col ):
     
            
 ###
-def process_special_token( token_id, args ):
+def process_special_token( token_id, iters, args ):
+    # Year
+    if ( token_id == '_YYYY' ):
+        return SMapEntry( "{:04}".format( datetime.now().year ), args['-d'] )
+ 
+    # Month
+    if ( token_id == '_MM' ):
+        return SMapEntry( "{:02}".format( datetime.now().month ), args['-d'] )
+               
+    # Day
+    if ( token_id == '_DD' ):
+        return SMapEntry( "{:02}".format( datetime.now().day ), args['-d'] )
+
+    # Iteration count
+    if ( token_id == '_ITERNUM' ):
+        return SMapEntry( str(iters.get_iter_number()), args['-d'] )
+
+    # Iteration Value
+    if ( token_id == '_ITERVAL' ):
+        return SMapEntry( str(iters.get_iter_value()), args['-d'] )
+
+    # If I get here, then no special token found
     return None
+
 
 ###
 def subscripting( line, idx, header, smap, iters, outfd, lnum, args ):
@@ -312,10 +419,80 @@ def subscripting( line, idx, header, smap, iters, outfd, lnum, args ):
     return False
 
 ###
-def process_subscript_statement( parms, header, iters, smap, outfd, indent, lnum, args ):
+def inlining( line, idx, header, smap, iters, outfd, content, lnum, args ):
+    marker = header.get_mark() + "_INLINE" 
+    if ( line[idx:].startswith( marker ) ):   
+        return process_inline_statement( line[idx+len(marker):], idx, header, iters, smap, outfd, line[:idx], content, lnum, args )
+               
+    return 0
+
+###
+def process_inline_statement( parms, indent_idx, header, iters, smap, outfd, indent, content, lnum, args ):
     # Strip off S-CMD(s) if any
     scmd_mark   = parms.find( ':' )
     scmd_string = ''
+    if ( scmd_mark != -1 ):
+        scmd_string = parms[scmd_mark+1:]
+        parms       = parms[:scmd_mark]
+
+    # Process token values
+    sargs = parms.split(',')
+
+    # Build inline content
+    newcontent = read_inline_content( indent_idx, content, header, args, lnum )
+
+    # Build the header & map
+    newheader = Header( header.get_fname(), args['-r'], header.get_mark(), header.get_esc() )
+    newmap    = SMap( args['-d'] )
+    newheader.set_line_count( header.get_line_count() + lnum + 1 )
+    for t in range(1, len(sargs) ):
+        token           = normalize_entry( sargs[t] ) 
+        entry, token_id = convert_to_map_entry( token, header, smap, iters, args, lnum )
+        newheader.add_token( token_id )
+        newmap.add_entry( entry )
+
+    # Build iteration info
+    newiters = calc_iterations( indent, newmap, scmd_string, iters.get_indent_level() )
+
+    # Expand Subscript
+    expand_content( newheader, newcontent, newmap, newiters, outfd, args )
+
+    # Return the number of of content line consumed by the Inline subscript
+    return len(newcontent) + 1
+
+
+###
+def read_inline_content( indent_idx, content, header, args, lnum ):
+    idx               = lnum + 1
+    inline_statements = 1
+    start_mark        = header.get_mark() + "_INLINE"
+    end_mark          = header.get_mark() + "_END_INLINE"
+    new_content       = []
+  
+    while( inline_statements > 0and idx < len(content) ):
+        line = content[idx]
+        if ( line.find(start_mark) != -1 ):
+            inline_statements += 1
+
+        elif ( line.find(end_mark) != -1 ):
+            inline_statements -= 1
+
+        new_content.append( line[indent_idx:] )
+        idx += 1
+
+    if ( inline_statements > 0 ):
+        sys.exit( "ERROR: Unmatched _INLINE and/or missing _END_INLINE statement (unmatched count={}). File={}, starting at line# {}".format( inline_statements, header.get_fname(), header.get_line_count() + lnum ) )
+
+    # Remove trailing _END_LINE statement
+    new_content.pop()
+    return new_content
+      
+
+###
+def process_subscript_statement( parms, header, iters, smap, outfd, indent, lnum, args ):
+    # Strip off S-CMD(s) if any
+    scmd_mark   = parms.find( ':' )
+    scmd_string = None
     if ( scmd_mark != -1 ):
         scmd_string = parms[scmd_mark+1:]
         parms       = parms[:scmd_mark]
@@ -332,8 +509,8 @@ def process_subscript_statement( parms, header, iters, smap, outfd, indent, lnum
     newmap = SMap( args['-d'] )
     if ( len(sargs) > 1 ):
         for t in range(2, len(sargs)):
-            token = normalize_entry( sargs[t] ) 
-            entry = convert_to_map_entry( token, header, smap, iters, args, lnum )
+            token           = normalize_entry( sargs[t] ) 
+            entry, token_id = convert_to_map_entry( token, header, smap, iters, args, lnum )
             newmap.add_entry( entry )
 
     # Build iteration info
@@ -345,13 +522,55 @@ def process_subscript_statement( parms, header, iters, smap, outfd, indent, lnum
 
 ###
 def calc_iterations( indent, smap, scmd_string, old_level ):
+    # Calculate iterations number based on the Substitution map
     max_iter_count = 1
     for e in smap.get_entries():
         if ( e.get_iter_count() > max_iter_count ):
             max_iter_count = e.get_iter_count()
 
-    return Iteration( indent, max_iter_count, indent_level = old_level + 1 )
+    # Check for S-Cmd
+    max_iter_count, start, step = do_scmd_iterate( max_iter_count, scmd_string )
+
+    # Constructor iteration data structure
+    return Iteration( indent, max_iter_count, start, step, old_level + 1 )
     
+
+### 
+def do_scmd_iterate( max_iter_count, scmd_string ):
+    # Skip if not the iterate command
+    if ( scmd_string == None ):
+        return max_iter_count, 0, 1
+
+    # Parse parameters. Format: iter [<start> [<step> [<min_iters>]]] 
+    parms = scmd_string.strip().split()
+    if ( len(parms) == 0 or parms[0] != 'iter' ):
+        return max_iter_count, 0, 1
+     
+       
+    # Default values
+    start     = 0
+    step      = 1
+    min_iters = 1
+ 
+    # Set values
+    if ( len(parms) > 1 ):
+        v,f = string_to_number( parms[1] )  
+        if ( f ):
+            start = v
+
+    if ( len(parms) > 2 ):
+        v,f = string_to_number( parms[2] )  
+        if ( f ):
+            step = v
+   
+    if ( len(parms) > 3 ):
+        v,f = string_to_number( parms[3] )  
+        if ( f ):
+          min_iters = max( max_iter_count, v )
+
+    # Return results
+    return min_iters, start, step
+
 
 ###
 def convert_to_map_entry( token_id, header, smap, iters, args, lnum ):
@@ -365,18 +584,15 @@ def convert_to_map_entry( token_id, header, smap, iters, args, lnum ):
     # Get map index for token ID
     idx = header.find_token( token_id )
     if ( idx == -1 ):
-        sys.exit( "ERROR: _SUBSCRIPT statement - Invalid token name. File={}, line# {}".format( header.get_fname(), header.get_line_count() + lnum ) ) 
+        sys.exit( "ERROR: _SUBSCRIPT/_INLINE statement - Invalid token name: {}. File={}, line# {}".format( token_id, header.get_fname(), header.get_line_count() + lnum ) ) 
     entry = smap.get_entry( idx )
     if ( entry == None ):
-        sys.exit( "ERROR: _SUBSCRIPT statement - No matching map entry for token_id={}. File={}, line# {}".format( token_id, header.get_fname(), header.get_line_count() + lnum ) ) 
+        sys.exit( "ERROR: _SUBSCRIPT/_INLINE statement - No matching map entry for token_id={}. File={}, line# {}".format( token_id, header.get_fname(), header.get_line_count() + lnum ) ) 
         
     # Construct Map entery for token id                
     force = True if use_all else False
-    return SMapEntry( entry.get_raw_value(), args['-d'], force )
+    return SMapEntry( entry.get_raw_value(), args['-d'], force ), token_id
 
-#    def __init__( self, value, delimiter, force_no_iter_count=False ):
-#    def __init__( self, indent="", number_of_iterations=1, initial_value=0, step_size=1 ):
-#    <mark>_SUBSCRIPT,<fname> [,[*]<tokenA>[,[*]<tokenB>]....[,[*]<tokenN>][:<scmd> [<args>...]]*
 
 #------------------------------------------------------------------------------
 ###
@@ -567,9 +783,9 @@ class Header(object):
 ###
 class SMapEntry(object):
     def __init__( self, value, delimiter, force_no_iter_count=False ):
-        self.org       = value
-        self.values    = value.split(delimiter)
-        self.count     = len(self.values)
+        self.org    = value
+        self.values = value.split(delimiter) if delimiter != None else list( value )
+        self.count  = len(self.values)
         self.itercount = self.count
         if ( force_no_iter_count ):
             self.itercount = 1
@@ -698,7 +914,7 @@ class Iteration(object):
         return self.verbose
 
     def __repr__(self):
-        ret = "current={}, max={}, val={}, indent_len={}".format( self.iter_num, self.max_iter, self.iter_value, len(self.indent) )
+        ret = "current={}, max={}, val={}, step={}, indent_len={}".format( self.iter_num, self.max_iter, self.iter_value, self.iter_step, len(self.indent) )
         return ret
         
                 
@@ -714,6 +930,9 @@ F4 is an updated, python version of the Jcl ASX command line applet. ASX in
 turn was inspired from the VAX FMS (Forms Management System).  So yes, you can 
 teach an old programmer new tricks as long as it is an old trick.
 
+
+NOTE: It is HIGHLY recommended that you do NOT use tabs in your template files,
+      especially when using subscripting.
 
 
 TEMPLATE FILE FORMAT:
@@ -913,7 +1132,11 @@ values) before the R command is performed.
                 $names>+, $   results in: "bob, henry, fred"
                 $U<names>+_$  results in: "BOB_HENRY_FRED"
 
-
+    #   - Count. This command returns the number of values in a multi-valued
+          token.  If the token is not a multi-valued token, the operator 
+          returns 1
+          
+           
 
 SUBSCRIPTS:
 ----------
@@ -1140,8 +1363,8 @@ className
 flagName,  Name of the flag variable 
 
 ; Begin Expansion Text
-#SCRIPT
-class $u.className
+#CONTENT
+class $u<className$
 {
 public:
     bool m_$l<flagName$;

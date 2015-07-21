@@ -10,6 +10,7 @@ from nqbplib.docopt.docopt import docopt
 from nqbplib import utils
 
 
+
 # 
 usage = """ 
 f4 - Forms For files.  Generates a text file from template file(s) and dynamic 
@@ -41,11 +42,14 @@ Options:
   -r ROOTPATH      Sets the 'root path' for the _RELPATH token. The default
                    is no root path, i.e. root path = current working directory.
   --local PATH     Sets the local search path when trying to open/find the  
-                   specified template file and/or subscript template files.
+                   specified template file and/or subscript template files. See
+                   the Notes section for more details.
   --global PATH    Sets the global search path when trying to open/find the
-                   specified template file and/or subscript template files.
-  --outcast-pkg    Sets the 'root path' for the _RELPATH token to the current
-                   Package as defined by the Outcast command: 'orc --qry-pkg'
+                   specified template file and/or subscript template files. See
+                   the Notes section for more details.
+  -z, --outcast    Uses 'Outcast' notation for all path options. A leading '//'
+                   specifies the root of the Outcast workspace and a leading
+                   '/' specified the root of the current package.
   -v               Be verbose
   -g               Display f4 debug information
   -?, --guide      Display user guide.
@@ -58,7 +62,9 @@ NOTES:
         1) The current working directory is searched first
         2) Then the --local PATH (if there is one)
         3) Finally the --global PATH (if there is on)
-
+    o The environment variables - F4_LOCAL_PATH and F4_GLOBAL_PATH can be use
+      to set the default values for the --local and --global options.
+      directory (unless the -z option is used).
               
 """
 
@@ -67,18 +73,53 @@ import subprocess
 import re
 import sys
 
+# globals
+WRKSPACE_ROOT = ''
+PKG_ROOT      = ''
+
+
+
+# Hardwire 
 #------------------------------------------------------------------------------
 # Parse command line
-def run( argv ):
+def run( argv, default_local_path, default_global_path, use_outcast=False ):
+    global WRKSPACE_ROOT
+    global PKG_ROOT
 
     # Process command line args...
     args = docopt(usage, version="0.0.1" )
+
+    # Debug
+    if ( args['-g'] ):
+        print args, '\n'
+    
+    # Set default for --outcast option
+    if ( use_outcast ):
+        args['--outcast'] = True
+           
+    # Find the Package & Workspace root
+    if ( args['--outcast'] ):
+        WRKSPACE_ROOT, PKG_ROOT = set_pkg_and_wrkspace_roots()
 
     # Print guide
     if ( args['--guide'] ):
         print guide
         sys.exit()
         
+    # Set default for --local path option
+    if ( not args['--local'] ):
+        lpath = os.environ.get('F4_LOCAL_PATH')
+        if ( lpath == None ):
+            lpath = default_local_path
+        args['--local'] = lpath
+
+    # Set default for --global path option
+    if ( not args['--global'] ):
+        gpath = os.environ.get('F4_GLOBAL_PATH')
+        if ( gpath == None ):
+            gpath = default_global_path
+        args['--global'] = gpath
+
     # Build the Substitution Map
     smap  = build_map( args )
     iters = Iteration()
@@ -442,7 +483,7 @@ def process_inline_statement( parms, indent_idx, header, iters, smap, outfd, ind
     newcontent = read_inline_content( indent_idx, content, header, args, lnum )
 
     # Build the header & map
-    newheader = Header( header.get_fname(), args['-r'], header.get_mark(), header.get_esc() )
+    newheader = Header( os.path.join(header.get_fname(), "_INLINE"), args['-r'], header.get_mark(), header.get_esc() )
     newmap    = SMap( args['-d'] )
     newheader.set_line_count( header.get_line_count() + lnum + 1 )
     for t in range(1, len(sargs) ):
@@ -645,7 +686,7 @@ def read_template_file( template, iters,  args ):
 
     # Read template file
     try:
-        infile = open_template_file( template, args )
+        infile, full_name = open_template_file( template, args, iters )
         for line in infile:
             # Load #CONTENT section into memory
             if ( content_found ):
@@ -659,7 +700,7 @@ def read_template_file( template, iters,  args ):
                 elif ( not line.strip() ):
                     pass
                 elif ( line.startswith( '#HEADER' ) ):
-                    header       = process_header( template, line, args )
+                    header       = process_header( full_name, line, args )
                     header_found = True
                 elif ( header_found and line.startswith( '#CONTENT') ):
                     content_found = True
@@ -700,36 +741,82 @@ def process_header( fname, line, args ):
         
 
 ###
-def open_template_file( fname, args ):
+def open_template_file( fname, args, iters ):
+ 
+    # Create alternate search paths   
+    lpath = create_search_path( args['--local'], args )
+    gpath = create_search_path( args['--global'], args )
+    if ( args['-g'] ):
+        print "{}Opening template file= {}...".format( iters.get_verbose_indent(), fname )
+        print "{}  search path: cwd      = {}".format( iters.get_verbose_indent(), os.getcwd() )
+        print "{}  search path: --local  = {}".format( iters.get_verbose_indent(), lpath )
+        print "{}  search path: --global = {}".format( iters.get_verbose_indent(), gpath )
+
     # Search CWD
     try:
         inf = open( fname )
-        return inf;
+        if ( args['-g'] ):
+            print "{}  -->opened from cwd.".format( iters.get_verbose_indent() )
+
+        return inf, fname;
     except EnvironmentError:
         pass
             
     # Search local path
-    if ( args['--local'] ):
-        try:
-            f = os.path.join( args['--local'], fname )
-            inf = open( f )
-            return inf
-        except EnvironmentError:
-            pass
+    try:
+        f = os.path.join( lpath, fname )
+        inf = open( f )
+        if ( args['-g'] ):
+            print "{}  -->opened from --local".format( iters.get_verbose_indent() )
+
+        return inf, f
+    except EnvironmentError:
+        pass
 
     # Search global path
-    if ( args['--global'] ):
-        try:
-            f = os.path.join( args['--global'], fname )
-            inf = open( f )
-            return inf
-        except EnvironmentError:
-            pass
+    try:
+        f = os.path.join( gpath, fname )
+        inf = open( f )
+        if ( args['-g'] ):
+            print "{}  -->opened from --global.".format( iters.get_verbose_indent() )
+
+        return inf, f
+    except EnvironmentError:
+        pass
 
     # If I get here -->could not find the requested template file
     sys.exit( "ERROR: Cannot open/find template file: {}".format( fname ) )
     
-          
+
+
+###
+def create_search_path( path, args ):
+
+    # standardize the direction seperator
+    path = utils.standardize_dir_sep( path )
+    if ( path.endswith( os.sep ) ):
+        path = path[:-1]
+
+    # No extra work if NOT using Outcast notation
+    if ( not args['--outcast'] ):
+        return path
+        
+    #global WRKSPACE_ROOT
+    #global PKG_ROOT
+
+    # Outcast notation: Workspace root
+    if ( path.startswith(os.sep + os.sep) ):
+        path = os.path.join(WRKSPACE_ROOT, 'xpkgs', path[2:] )
+
+    # Outcast notation: Package root
+    elif ( path.startswith( os.sep ) ):
+        path = os.path.join(WRKSPACE_ROOT, PKG_ROOT, path[1:] )
+
+    # NOT Outcast notation -->Treat as a non-outcast path
+    return path
+
+    
+                     
 ###
 class Header(object):
     def __init__( self, fname, root_path, mark, esc ):
@@ -875,6 +962,23 @@ class Output(object):
             self.handle.close()     
 
             
+###
+def set_pkg_and_wrkspace_roots():
+    result, wrk_root = run_shell( 'orc --qry-w' )
+    if ( result != 0 ):
+        sys.exit( "ERROR: Cannot execute Outcast's 'orc' command.  Please setup your Outcast environment." )
+    result, pkg_root = run_shell( 'orc --qry-p' )
+    if ( result != 0 ):
+        sys.exit( "ERROR: Cannot execute Outcast's 'orc' command.  Please setup your Outcast environment." )
+
+    return wrk_root, pkg_root
+
+
+###
+def run_shell( cmd ):
+    p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
+    r = p.communicate()
+    return (p.returncode, r[0].strip())
 
 ###
 class Iteration(object):
@@ -1045,9 +1149,6 @@ _DD         - Embeds the current day in with the following format: '%02d'
 _ITERNUM    - Embeds the iteration number with the following format: '%d'. The
               vaule of the iteration number always starts at zero.
 _ITERVAL    - Embeds the iteration counter value with the following format: '%d'
-_ABSPATH    - Embeds the absolute path of the current working directory.  The
-              directory seperator will always be "/"
-_ABSPATH_N  - Same as _ABSPATH, except the native directory seperator is used.
 _RELPATH    - A multi-value token that contains a directory path - where each
               directory in the path is a value - of current working directory
               relative to a 'root directory' that is specified when the

@@ -6,6 +6,9 @@ names
 values
 
 #CONTENT
+/// Test escape sequences
+escape char=``, mark char=`$
+
 /// Test L-Cmds: Case operators
 title  : $title$, $subtitle$
 title-u: $u<title$, $u<subtitle$

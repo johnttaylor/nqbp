@@ -184,11 +184,13 @@ def expand_line( line, header, smap, iters, outfd, content, lnum, args ):
         if ( escaped ):
             outline += line[idx]
             idx     += 1
-            esacped  = False
+            escaped  = False
+            continue
 
         elif ( line[idx] == header.get_esc() ):
             escaped  = True
             idx     += 1
+            continue
             
         # Check for Subscripting
         if ( subscripting( line, idx, header, smap, iters, outfd, lnum, args ) ):
@@ -1233,7 +1235,7 @@ list of currently supported L-Commands:
           value. If the substitution value is not a numeric value, nothing is 
           done.
     r   - Replace the token value with the L-cmd operand parameter.  This is
-          typically used in conjectino with the R-Cmd '+' operator.
+          typically used in conjunction with the R-Cmd '+' operator.
 
 
 

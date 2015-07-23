@@ -62,9 +62,11 @@ NOTES:
         1) The current working directory is searched first
         2) Then the --local PATH (if there is one)
         3) Finally the --global PATH (if there is on)
-    o The environment variables - F4_LOCAL_PATH and F4_GLOBAL_PATH can be use
+    o The environment variables - F4_LOCAL_PATH and F4_GLOBAL_PATH - can be use
       to set the default values for the --local and --global options.
       directory (unless the -z option is used).
+    o The environment variable - F4_ROOT_PATH - can be used to the set default
+      value for the -r option.
               
 """
 
@@ -82,7 +84,7 @@ PKG_ROOT      = ''
 # Hardwire 
 #------------------------------------------------------------------------------
 # Parse command line
-def run( argv, default_local_path, default_global_path, use_outcast=False ):
+def run( argv, default_local_path, default_global_path, default_root_path, use_outcast=False ):
     global WRKSPACE_ROOT
     global PKG_ROOT
 
@@ -105,7 +107,10 @@ def run( argv, default_local_path, default_global_path, use_outcast=False ):
     if ( args['--guide'] ):
         print guide
         sys.exit()
-        
+
+    # Calculate path for _RELPATH token
+    compute_relative_path( args, default_root_path )
+
     # Set default for --local path option
     if ( not args['--local'] ):
         lpath = os.environ.get('F4_LOCAL_PATH')
@@ -278,7 +283,9 @@ def apply_token_commands( entry, iters, lcmd, loper, rcmd, roper, header, args, 
         if ( rcmd == '+' ):
             if ( entry.get_count() > 1 ):
                 return do_rcmd_concatenate( entry, iters, roper, lcmd, loper, header, args, lnum, col )
-       
+            else:
+                return raw_value
+
         elif ( rcmd == '#' ):
             return do_rcmd_count( entry, iters, roper, lcmd, loper, header, args, lnum, col )
 
@@ -446,6 +453,10 @@ def process_special_token( token_id, iters, args ):
     if ( token_id == '_ITERVAL' ):
         return SMapEntry( str(iters.get_iter_value()), args['-d'] )
 
+    # Iteration Value
+    if ( token_id == '_RELPATH' ):
+        return SMapEntry( args['-r'], args['-d'] )
+
     # If I get here, then no special token found
     return None
 
@@ -483,7 +494,7 @@ def process_inline_statement( parms, indent_idx, header, iters, smap, outfd, ind
     newcontent = read_inline_content( indent_idx, content, header, args, lnum )
 
     # Build the header & map
-    newheader = Header( os.path.join(header.get_fname(), "_INLINE"), args['-r'], header.get_mark(), header.get_esc() )
+    newheader = Header( os.path.join(header.get_fname(), "_INLINE"), header.get_mark(), header.get_esc() )
     newmap    = SMap( args['-d'] )
     newheader.set_line_count( header.get_line_count() + lnum + 1 )
     for t in range(1, len(sargs) ):
@@ -737,15 +748,15 @@ def process_header( fname, line, args ):
         if ( count > 2 ):
             esc = options[2].strip()
 
-    return Header( fname, args['-r'], mark, esc )
+    return Header( fname, mark, esc )
         
 
 ###
 def open_template_file( fname, args, iters ):
  
     # Create alternate search paths   
-    lpath = create_search_path( args['--local'], args )
-    gpath = create_search_path( args['--global'], args )
+    lpath = process_path_argument( args['--local'], args )
+    gpath = process_path_argument( args['--global'], args )
     if ( args['-g'] ):
         print "{}Opening template file= {}...".format( iters.get_verbose_indent(), fname )
         print "{}  search path: cwd      = {}".format( iters.get_verbose_indent(), os.getcwd() )
@@ -790,7 +801,7 @@ def open_template_file( fname, args, iters ):
 
 
 ###
-def create_search_path( path, args ):
+def process_path_argument( path, args ):
 
     # standardize the direction seperator
     path = utils.standardize_dir_sep( path )
@@ -801,12 +812,18 @@ def create_search_path( path, args ):
     if ( not args['--outcast'] ):
         return path
         
-    #global WRKSPACE_ROOT
-    #global PKG_ROOT
-
     # Outcast notation: Workspace root
     if ( path.startswith(os.sep + os.sep) ):
-        path = os.path.join(WRKSPACE_ROOT, 'xpkgs', path[2:] )
+        # Handle the case of where the package is MY package (i.e. do NOT map through the xpkgs/ tree)
+        d = path[2:].split(os.sep)
+        if ( d[0] == os.path.basename( PKG_ROOT ) ):
+            if ( len(d) == 1 ):
+                path = os.path.join(WRKSPACE_ROOT, PKG_ROOT)
+            else:
+                path = os.path.join(WRKSPACE_ROOT, PKG_ROOT, os.path.join(*d[1:]) )
+        else:
+            path = os.path.join(WRKSPACE_ROOT, 'xpkgs', path[2:] )
+
 
     # Outcast notation: Package root
     elif ( path.startswith( os.sep ) ):
@@ -819,14 +836,13 @@ def create_search_path( path, args ):
                      
 ###
 class Header(object):
-    def __init__( self, fname, root_path, mark, esc ):
+    def __init__( self, fname, mark, esc ):
         self.num_tokens = 0
         self.mark       = mark
         self.esc        = esc
         self.tokens     = []
         self.lcount     = 0
         self.fname      = fname
-        self.root_path  = root_path
 
     def get_mark( self ):
         return self.mark
@@ -857,9 +873,6 @@ class Header(object):
     def get_fname( self ):
         return self.fname
 
-    def get_root_path( self ):
-        return self.root_path
-                
 
     def __repr__(self):
         ret = "HEADER: count={}, mark={}, esc={}, Tokens={}".format( self.num_tokens, self.mark, self.esc, self.tokens )
@@ -870,13 +883,22 @@ class Header(object):
 ###
 class SMapEntry(object):
     def __init__( self, value, delimiter, force_no_iter_count=False ):
-        self.org    = value
-        self.values = value.split(delimiter) if delimiter != None else list( value )
-        self.count  = len(self.values)
+        # Parse the raw value into multiple values 
+        if ( delimiter ):
+            self.values = value.split( delimiter )
+
+        # No delimimeter -->forces no parsing
+        else:
+            self.values = []
+            self.values.append( value )
+
+        self.org       = value
+        self.count     = len(self.values)
         self.itercount = self.count
         if ( force_no_iter_count ):
             self.itercount = 1
-    
+        
+
     def get_value(self, index = 0 ):
         if ( index >= self.count ):
             index = self.count - 1
@@ -926,6 +948,35 @@ class SMap(object):
 
 
 #------------------------------------------------------------------------------
+###
+def compute_relative_path( args, default_root_path ):
+    # Set default for -r path option
+    rpath = args['-r']
+    if ( rpath == None ):
+        rpath = os.environ.get('F4_ROOT_PATH')
+        if ( rpath == None ):
+            rpath = default_root_path
+
+    # Get parent path
+    rpath = process_path_argument( rpath, args )
+    cwd   = os.getcwd()
+
+    # calc relative path
+    if ( cwd.startswith( rpath ) ):
+        relpath = cwd.replace( rpath, '', 1 )
+    else:
+        relpath = ""
+
+
+    # store the relative path (as a multi-value string) back into the args dictionary (its convenient)
+    relpath    = relpath.strip(os.sep)
+    args['-r'] = relpath.replace(os.sep, args['-d'] )
+    
+    # Debug
+    if ( args['-g'] ):
+        print "_RELPATH={}".format( args['-r'] )
+
+
 ###
 def string_to_number(s):
     try:

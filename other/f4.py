@@ -17,8 +17,10 @@ sys.path.append( NQBP_BIN )
 
 default_local_path  = '.'
 default_global_path = '.'
+default_root_path   = '.'
 #default_local_path  = '/resources/f4'
 #default_global_path = '//colon.core/resources/f4'
+#default_root_path   = '/src'
 
 ### END EDIT
 #============================================================================

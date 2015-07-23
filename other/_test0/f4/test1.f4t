@@ -20,6 +20,10 @@ should be one '*' for each name: $r*<names>+, $
 list of comma seperated names: $names>+, $
        .. same but Upper case: $U<names>+, $
 
+/// Test R-Cmd: expansion - more...
+single vaule[$"1">+,$]
+single vaule[$"1,2">+,$]
+empty vaule[$"">+,$]
 
 /// Test R-Cmd: Count
 Counts:
@@ -37,7 +41,7 @@ names:
  
 
 /// Test special tokens
-year=$_YYYY$, month=$_MM$, day=$_DD$
+year=$_YYYY$, month=$_MM$, day=$_DD$, "$_RELPATH>+::$"
 $_INLINE, names: iter 100 10 10
    $names$ = { $_ITERNUM$, $_ITERVAL$ }
 $_END_INLINE

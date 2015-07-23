@@ -500,8 +500,7 @@ def process_inline_statement( parms, indent_idx, header, iters, smap, outfd, ind
     newmap    = SMap( args['-d'] )
     newheader.set_line_count( header.get_line_count() + lnum + 1 )
     for t in range(1, len(sargs) ):
-        token           = normalize_entry( sargs[t] ) 
-        entry, token_id = convert_to_map_entry( token, header, smap, iters, args, lnum )
+        entry, token_id = convert_to_map_entry( sargs[t].strip(), header, smap, iters, args, lnum )
         newheader.add_token( token_id )
         newmap.add_entry( entry )
 
@@ -552,8 +551,8 @@ def process_subscript_statement( parms, header, iters, smap, outfd, indent, lnum
         parms       = parms[:scmd_mark]
 
     # Process token values
-    sargs = parms.split(',')
-    if ( len(args) == 0 ):
+    sargs = split_parms( parms, ',')
+    if ( len(sargs) == 0 ):
         sys.exit( "ERROR: Invalid _SUBSCRIPT statement. File={}, line# {}".format( header.get_fname(), header.get_line_count() + lnum ) ) 
 
     # Open template file
@@ -563,8 +562,7 @@ def process_subscript_statement( parms, header, iters, smap, outfd, indent, lnum
     newmap = SMap( args['-d'] )
     if ( len(sargs) > 1 ):
         for t in range(2, len(sargs)):
-            token           = normalize_entry( sargs[t] ) 
-            entry, token_id = convert_to_map_entry( token, header, smap, iters, args, lnum )
+            entry, token_id = convert_to_map_entry( sargs[t].strip(), header, smap, iters, args, lnum )
             newmap.add_entry( entry )
 
     # Build iteration info
@@ -573,7 +571,7 @@ def process_subscript_statement( parms, header, iters, smap, outfd, indent, lnum
     # Expand Subscript
     expand_content( newheader, newcontent, newmap, newiters, outfd, args )
    
-
+                
 ###
 def calc_iterations( indent, smap, scmd_string, old_level ):
     # Calculate iterations number based on the Substitution map
@@ -635,6 +633,11 @@ def convert_to_map_entry( token_id, header, smap, iters, args, lnum ):
         use_all  = True
         token_id = token_id[1:]
 
+    # Trap literal string as the token value
+    if ( (token_id.startswith('"') and token_id.endswith('"')) or (token_id.startswith("'") and token_id.endswith("'")) ):
+        token_id = token_id[1:-1]
+        return SMapEntry( token_id, args['-d'], use_all ), token_id
+
     # Get map index for token ID
     idx = header.find_token( token_id )
     if ( idx == -1 ):
@@ -644,8 +647,7 @@ def convert_to_map_entry( token_id, header, smap, iters, args, lnum ):
         sys.exit( "ERROR: _SUBSCRIPT/_INLINE statement - No matching map entry for token_id={}. File={}, line# {}".format( token_id, header.get_fname(), header.get_line_count() + lnum ) ) 
         
     # Construct Map entery for token id                
-    force = True if use_all else False
-    return SMapEntry( entry.get_raw_value(), args['-d'], force ), token_id
+    return SMapEntry( entry.get_raw_value(), args['-d'], use_all ), token_id
 
 
 #------------------------------------------------------------------------------
@@ -950,6 +952,50 @@ class SMap(object):
 
 
 #------------------------------------------------------------------------------
+### 
+def split_parms( line, delimiter ):
+    parms  = []
+    idx    = 0
+    mark   = 0
+    dquote = False
+    squote = False
+
+    while( idx < len(line) ):
+        # Inside a double quote
+        if ( dquote ):
+            if ( line[idx] == '"' ):
+                dquote = False
+ 
+        # Inside a single quote
+        elif ( squote ):
+            if ( line[idx] == "'" ):
+                squote = False
+        
+        # Start of a double quote
+        elif ( line[idx] == '"' ):
+            dquote = True
+
+        # Start of a single quote
+        elif ( line[idx] == "'" ):
+            squote = True
+  
+        # found a comma
+        elif ( line[idx] == delimiter ):
+            parms.append( line[mark:idx] )
+            mark = idx + 1
+            
+        # advance index
+        idx += 1
+        
+    # Return an error is bad quoting
+    if ( squote or dquote ):
+        return []
+
+    # capture the last parm
+    parms.append( line[mark:] )
+    return parms
+
+      
 ###
 def compute_relative_path( args, default_root_path ):
     # Set default for -r path option
@@ -1326,6 +1372,12 @@ FORMAT #1 - Reference an external template file
                   the multi-valued tokens that start with a '*' will be treated
                   as single valued token with respect to iteration within the
                   subscript.
+
+                  NOTE: 'tokenA' can be a literal string enclosed with in 
+                        double or single quotes.  The literal string can 
+                        also contain multi-values using the delimiter character
+                        specified by the '-d' option.  For example:
+                            $_SUBSCRIPT, example_1.f4t, "MyClassName", "blue,red"
                    
         scmd      A S-Command string identifier followed by zero or more
                   command arguments.  Multiple S-Commands can be specified using
@@ -1357,9 +1409,12 @@ FORMAT #2 - Inlined Subscript
            from the parent template's #HEADER section
         3) The token identifier names are set/assumed to match the names of 
            the tokens supplied on the '$_INLINE' statement.
+      
               
-    NOTE: For the indentation to work properply TABS can not be used as leading 
+    NOTES: 
+        o For the indentation to work properply TABS can not be used as leading 
           characters in the contents of the inlined subscript! 
+        o The <tokenA> arguments can NOT be literal strings
 
 
 S-COMMANDS:

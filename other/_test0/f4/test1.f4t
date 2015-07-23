@@ -85,3 +85,14 @@ $_END_INLINE
 	$_INLINE, title
 	$title$ = $_ITERNUM$, $_ITERVAL$
 	$_END_INLINE
+
+
+/// Test _SUBSCRIPT statement
+	/// Iterate on flagName
+	$_SUBSCRIPT, example_1.f4t, *names, "MyFlagLiteral,secondFlag"
+
+	/// No iteration - literal args
+	$_SUBSCRIPT, example_1.f4t, 'Henry', 'MyFlagLiteral'
+
+	/// No iteration - tokens
+	$_SUBSCRIPT, example_1.f4t, title, subtitle

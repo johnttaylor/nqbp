@@ -41,6 +41,9 @@ Arguments:
                    Format is: 'Rte::Db::Record'
                    
 Options:
+  -d NEVENTS       When NEVENTS is greater then 0 code for an event queue is 
+                   generated where NEVENTS is the size of the event queue. 
+                   [Default: 0]
   -h, --help       Display command help.
         
          
@@ -79,6 +82,7 @@ def run( argv ):
     # Filenames
     fsmdiag = args['<basename>'] + ".cdd"
     base    = args['<basename>'] + "Context_" 
+    evque   = args['<basename>'] + "EventQueue_" 
     fsm     = args['<basename>'] 
     cfg     = 'codegen.cfg'
       
@@ -99,13 +103,6 @@ def run( argv ):
     # Clean-up config file (don't want it being checked into version control)
     os.remove( cfg )
     
-    # Generate Context/Base class
-    actions, guards = getContextMethods( fsmdiag )
-    generatedContextClass( base, names, getHeader(), actions, guards )
-    
-    # Post process the generated file(s) to work better with Doxygen
-    cleanup_for_doxygen( fsm + ".h", args['<namespaces>'] + "::" + fsm )
-      
     # Generated File names
     oldfsm    = fsm + '.h'
     oldfsmcpp = fsm + '.cpp'
@@ -116,6 +113,19 @@ def run( argv ):
     newfsmcpp = fsm + '_.cpp'
     newevt    = fsm + '_ext_.h'
     newtrace  = fsm + '_trace_.h'
+
+    # Generate Context/Base class
+    actions, guards = getContextMethods( fsmdiag )
+    generatedContextClass( base, names, getHeader(), actions, guards )
+    
+    # Generated event queuue class
+    depth = args['-d'].strip()
+    if ( depth != '0' ):
+        generateEventClass( evque, names, fsm, newfsm, depth )
+        
+    # Post process the generated file(s) to work better with Doxygen
+    cleanup_for_doxygen( fsm + ".h", args['<namespaces>'] + "::" + fsm )
+      
     
     # Post process the generated file(s) 
     cleanup_trace( oldfsmcpp, names, fsm, oldfsm, oldtrace, newtrace )
@@ -292,7 +302,7 @@ def generatedContextClass( class_name, namespaces,  header, actions, guards ):
         f.write( header )
         f.write( "\n\n/* This file is auto-generated DO NOT MANUALLY EDIT this file! */\n\n" )
         f.write( "\n" )
-        f.write( "/// Namespace(s)\n" );
+        f.write( "/// Namespace(s)\n" )
         f.write( "{}\n".format( nested_namespaces(namespaces) ) )
         f.write( "\n\n" )
         f.write( "/// Context (aka actions/guards) for my Finite State Machine\n" )
@@ -302,24 +312,110 @@ def generatedContextClass( class_name, namespaces,  header, actions, guards ):
         for a in actions:
             f.write( "    /// Action\n" )
             f.write( "    virtual void {} throw() = 0;\n".format( a ) )
-            f.write( "\n" );
-        f.write( "\n" );
+            f.write( "\n" )
+        f.write( "\n" )
         f.write( "public:\n" )
         for g in guards:
             f.write( "    /// Guard\n" )
             f.write( "    virtual bool {} throw() = 0;\n".format( g ) )
-            f.write( "\n" );
-        f.write( "\n" );
+            f.write( "\n" )
+        f.write( "\n" )
         f.write( "public:\n" )
         f.write( "    /// Virtual Destructor\n" )
         f.write( "    virtual ~{}(){}{}\n".format( class_name, "{","}" ) )
-        f.write( "\n" );
+        f.write( "\n" )
         f.write( "};\n" )
-        f.write( "\n" );
+        f.write( "\n" )
         f.write( "{}\n".format( end_nested_namespaces(namespaces) ) )
         f.write( "#endif /// end header latch\n" )
          
     
+def generateEventClass( class_name, namespaces,  parent_class, parent_header, depth ):
+    fname = class_name + '.h'
+    flat  = flatten_namespaces(namespaces)
+    path  = path_namespaces( namespaces )
+    
+    with open(fname,"w") as f:
+        f.write( "#ifndef {}{}x_h_\n".format( flat, class_name ) )
+        f.write( "#define {}{}x_h_\n".format( flat, class_name ) )
+        f.write( getHeader() )
+        f.write( "\n\n/* This file is auto-generated DO NOT MANUALLY EDIT this file! */\n\n" )
+        f.write( "\n" )
+        f.write( '#include "{}{}"\n'.format(path, parent_header) )
+        f.write( '#include "Cpl/Container/RingBuffer.h"\n' )
+        f.write( "\n\n" )
+        f.write( "/// Namespace(s)\n" )
+        f.write( "{}\n".format( nested_namespaces(namespaces) ) )
+        f.write( "\n\n" )
+        f.write( "/// Event Queue for FSM events.\n" )
+        f.write( "class {}: public {}, public Cpl::Container::RingBuffer<FSM_EVENT_T>\n".format( class_name, parent_class ) )
+        f.write( "{\n" )
+        f.write( "private:\n" )
+        f.write( "    /// Memory for Event queue\n" )
+        f.write( "    FSM_EVENT_T m_eventQueMemory[{}];\n".format( depth) )
+        f.write( "\n")
+        f.write( "    /// Flag for tracking re-entrant events\n" )
+        f.write( "    bool        m_processingFsmEvent;\n" )
+        f.write( "\n")
+        f.write( "public:\n" )
+        f.write( "    /// Constructor\n" )
+        f.write( "    {}();\n".format( class_name) )
+        f.write( "\n")
+        f.write( "public:\n" )
+        f.write( "    /// This method properly queues and process event messages\n" )
+        f.write( "    void generateEvent( FSM_EVENT_T msg );\n".format( class_name) )
+        f.write( "};\n" )
+        f.write( "\n" )
+        f.write( "{}\n".format( end_nested_namespaces(namespaces) ) )
+        f.write( "#endif /// end header latch\n" )
+
+    fname = class_name + '.cpp'
+    flat  = flatten_namespaces(namespaces)
+    with open(fname,"w") as f:
+        f.write( getHeader() )
+        f.write( "\n\n/* This file is auto-generated DO NOT MANUALLY EDIT this file! */\n\n" )
+        f.write( "\n" )
+        f.write( '#include "{}.h"\n'.format( class_name ) )
+        f.write( '#include "Cpl/System/FatalError.h"\n' )
+        f.write( '#include "Cpl/System/Trace.h"\n' )
+        f.write( "\n" )
+        f.write( '#define SECT_ "{}::{}"\n'.format( "::".join(namespaces), parent_class ) )
+        f.write( "\n" )
+        f.write( "/// Namespace(s)\n" )
+        f.write( "{}\n".format( nested_namespaces(namespaces) ) )
+        f.write( "\n\n" )
+        f.write( "{}::{}()\n".format( class_name, class_name ) )
+        f.write( ":Cpl::Container::RingBuffer<FSM_EVENT_T>( {}, m_eventQueMemory )\n".format( depth ) )
+        f.write( ",m_processingFsmEvent(false)\n" )
+        f.write( "    {\n" ) 
+        f.write( "    }\n" ) 
+        f.write( "\n\n" )
+        f.write( "void {}::generateEvent( FSM_EVENT_T msg )\n".format( class_name ) )
+        f.write( "    {\n" ) 
+        f.write( "    // Queue my event\n" )
+        f.write( "    if ( !add( msg ) )\n" )
+        f.write( "        {\n" )
+        f.write( '        Cpl::System::FatalError::logf( "{}::{}: - Buffer Overflow!" );\n'.format( "::".join(namespaces), class_name ) )
+        f.write( "        }\n" )
+        f.write( "\n" )
+        f.write( "    // Protect against in-thread 'feedback loops' that can potentially generate events\n" )
+        f.write( "    if ( !m_processingFsmEvent )\n" )
+        f.write( "        {\n" )
+        f.write( "        m_processingFsmEvent = true;\n" )
+        f.write( "        while( remove( msg ) )\n" )
+        f.write( "            {\n" )
+        f.write( "            if ( processEvent(msg) == 0 )\n" )
+        f.write( "                {\n" )
+        f.write( '                CPL_SYSTEM_TRACE_MSG( SECT_, ("Event IGNORED:= %s", getNameByEvent(msg)) );\n' )
+        f.write( "                }\n" )
+        f.write( "            }\n" )
+        f.write( "\n" )
+        f.write( "        m_processingFsmEvent = false;\n" )
+        f.write( "        }\n" )
+        f.write( "    }\n" ) 
+        f.write( "\n" )
+        f.write( "{}\n".format( end_nested_namespaces(namespaces) ) )
+
 
 
 #------------------------------------------------------------------------------

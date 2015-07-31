@@ -66,11 +66,9 @@ import sys
 # Parse command line
 def run( argv ):
 
-    print argv
-    
     # Process command line args...
     args = docopt(usage, version="0.0.1" )
-    
+     
     # Check the environment variables 
     sinpath = os.environ.get( "SINELABORE_PATH" )
     if ( sinpath == None ):
@@ -86,6 +84,21 @@ def run( argv ):
     fsm     = args['<basename>'] 
     cfg     = 'codegen.cfg'
       
+    # Generated File names
+    oldfsm    = fsm + '.h'
+    oldfsmcpp = fsm + '.cpp'
+    oldevt    = fsm + '_ext.h'
+    oldtrace  = fsm + '_trace.h'
+    oldtrace2 = fsm + '_trace.java'
+    newfsm    = fsm + '_.h'
+    newfsmcpp = fsm + '_.cpp'
+    newevt    = fsm + '_ext_.h'
+    newtrace  = fsm + '_trace_.h'
+    
+    # Delete 'optional' old/previous files 
+    utils.delete_file( evque + ".h" )
+    utils.delete_file( evque + ".cpp" )
+    
     # Create the config file for Sinelabore
     geneatedCodegenConfig( cfg, base, names )
         
@@ -103,23 +116,13 @@ def run( argv ):
     # Clean-up config file (don't want it being checked into version control)
     os.remove( cfg )
     
-    # Generated File names
-    oldfsm    = fsm + '.h'
-    oldfsmcpp = fsm + '.cpp'
-    oldevt    = fsm + '_ext.h'
-    oldtrace  = fsm + '_trace.h'
-    oldtrace2 = fsm + '_trace.java'
-    newfsm    = fsm + '_.h'
-    newfsmcpp = fsm + '_.cpp'
-    newevt    = fsm + '_ext_.h'
-    newtrace  = fsm + '_trace_.h'
 
     # Generate Context/Base class
     actions, guards = getContextMethods( fsmdiag )
     generatedContextClass( base, names, getHeader(), actions, guards )
     
     # Generated event queuue class
-    depth = args['-d'].strip()
+    depth = args['-d'].strip()  
     if ( depth != '0' ):
         generateEventClass( evque, names, fsm, newfsm, depth )
         

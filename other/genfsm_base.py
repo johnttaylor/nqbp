@@ -116,7 +116,12 @@ def run( argv ):
     # Clean-up config file (don't want it being checked into version control)
     os.remove( cfg )
     
-
+    # Mangle the event names so that I can many FSMs in the same namespace with the same event names
+    eventList = get_events_names( oldevt )
+    mangle_event_names( oldevt, eventList, fsm )
+    mangle_event_names( oldfsmcpp, eventList, fsm )
+    mangle_event_names( oldtrace, eventList, fsm )
+      
     # Generate Context/Base class
     actions, guards = getContextMethods( fsmdiag )
     generatedContextClass( base, names, getHeader(), actions, guards )
@@ -149,6 +154,73 @@ def run( argv ):
 
 
 #------------------------------------------------------------------------------
+def get_events_names( ext_header_file ):
+    found_start = False
+    events      = []
+    with open( ext_header_file ) as inf:
+        for line in inf:
+            # Capture events
+            if ( found_start ):
+                if ( line.find("_NO_MSG") == -1 ):
+                    event = line.strip().split('=')[0]
+                    event = event.strip().split(',')[0]
+                    events.append( event.strip() )
+
+                # All events found -->can exit the function
+                else:
+                    break;
+
+            # Find the start of the events                    
+            if ( line.startswith( "enum" ) ):
+                found_start = True
+
+    # Return found events
+    return events  
+
+#
+def mangle_event_names( file, events, prefix ):
+    tmpfile       = file + ".tmp"
+    found_indexes = False          
+    with open( file ) as inf:
+        with open( tmpfile, "w") as outf:  
+            for line in inf:
+
+                # Replace event names
+                for e in events:
+                    new_ev = prefix + "_" + e
+                    line   = line.replace(e,new_ev)
+                    
+                # Fix event name indexes
+                if ( found_indexes ):
+                    line = fix_indexes( line, prefix );
+                    found_indexes = False
+                elif ( line.find( "const unsigned short evt_idx[]={" ) != -1 ):
+                    found_indexes = True
+                         
+                outf.write( line )
+    
+    os.remove( file )
+    os.rename( tmpfile, file )
+
+
+# 
+def fix_indexes( line, prefix ):
+    line       = line.replace('};','').strip()
+    k          = len(prefix) + 1
+    offsets    = line.strip().split(",")
+    idx        = 0
+    newoffsets = []
+    for i in offsets:
+        n      = int(i)
+        newidx = n + idx * k
+        idx   += 1
+        newoffsets.append( str(newidx) )
+        
+    newline  = "        " + ','.join(newoffsets) + '};\n'
+    return newline
+        
+    
+#
 def cleanup_for_doxygen( headerfile, classname ):
     tmpfile = headerfile + ".tmp"
     with open( headerfile ) as inf:
@@ -162,7 +234,7 @@ def cleanup_for_doxygen( headerfile, classname ):
     os.remove( headerfile )
     os.rename( tmpfile, headerfile )
                      
-
+#
 def cleanup_includes( headerfile, namespaces, oldfsm, newfsm, oldevt, newevt, base ):
     tmpfile = headerfile + ".tmp"
     path    = path_namespaces( namespaces )
@@ -182,7 +254,7 @@ def cleanup_includes( headerfile, namespaces, oldfsm, newfsm, oldevt, newevt, ba
     os.remove( headerfile )
     os.rename( tmpfile, headerfile )
       
-      
+#      
 def cleanup_trace( cppfile, namespaces, base, oldfsm, old_trace_headerfile, new_trace_headerfile ):
     # Add xx_trace_.h include to xxx_.cpp
     tmpfile  = cppfile + ".tmp"
@@ -219,7 +291,7 @@ def cleanup_trace( cppfile, namespaces, base, oldfsm, old_trace_headerfile, new_
                     outf.write( '#define SECT_ "{}::{}"\n'.format( "::".join(namespaces), base ) )
                     outf.write( '\n' )
                 elif ( line.find( trace_fn ) != -1 ):
-                    outf.write( '#define ' + base + 'TraceEvent(a) CPL_SYSTEM_TRACE_MSG( SECT_, ( "Old State=%s, Event=%s", getNameByState(getInnermostActiveState()), FsmTraceEvents[a] ));\n' )
+                    outf.write( '#define {}TraceEvent(a) CPL_SYSTEM_TRACE_MSG( SECT_, ( "Old State=%s, Event=%s", getNameByState(getInnermostActiveState()), {}TraceEvents[a] ));\n'.format( base, base) )
                 elif ( line.find( enum ) != -1 ):
                     pass
                 elif ( line.find( comment ) != -1 ):
@@ -334,9 +406,10 @@ def generatedContextClass( class_name, namespaces,  header, actions, guards ):
          
     
 def generateEventClass( class_name, namespaces,  parent_class, parent_header, depth ):
-    fname = class_name + '.h'
-    flat  = flatten_namespaces(namespaces)
-    path  = path_namespaces( namespaces )
+    fname     = class_name + '.h'
+    flat      = flatten_namespaces(namespaces)
+    path      = path_namespaces( namespaces )
+    macroname = parent_class.upper()
     
     with open(fname,"w") as f:
         f.write( "#ifndef {}{}x_h_\n".format( flat, class_name ) )
@@ -351,11 +424,11 @@ def generateEventClass( class_name, namespaces,  parent_class, parent_header, de
         f.write( "{}\n".format( nested_namespaces(namespaces) ) )
         f.write( "\n\n" )
         f.write( "/// Event Queue for FSM events.\n" )
-        f.write( "class {}: public {}, public Cpl::Container::RingBuffer<FSM_EVENT_T>\n".format( class_name, parent_class ) )
+        f.write( "class {}: public {}, public Cpl::Container::RingBuffer<{}_EVENT_T>\n".format( class_name, parent_class, macroname ) )
         f.write( "{\n" )
         f.write( "private:\n" )
         f.write( "    /// Memory for Event queue\n" )
-        f.write( "    FSM_EVENT_T m_eventQueMemory[{}];\n".format( depth) )
+        f.write( "    {}_EVENT_T m_eventQueMemory[{}];\n".format( macroname, depth) )
         f.write( "\n")
         f.write( "    /// Flag for tracking re-entrant events\n" )
         f.write( "    bool        m_processingFsmEvent;\n" )
@@ -366,7 +439,7 @@ def generateEventClass( class_name, namespaces,  parent_class, parent_header, de
         f.write( "\n")
         f.write( "public:\n" )
         f.write( "    /// This method properly queues and process event messages\n" )
-        f.write( "    void generateEvent( FSM_EVENT_T msg );\n".format( class_name) )
+        f.write( "    void generateEvent( {}_EVENT_T msg );\n".format( macroname ) )
         f.write( "};\n" )
         f.write( "\n" )
         f.write( "{}\n".format( end_nested_namespaces(namespaces) ) )
@@ -388,12 +461,12 @@ def generateEventClass( class_name, namespaces,  parent_class, parent_header, de
         f.write( "{}\n".format( nested_namespaces(namespaces) ) )
         f.write( "\n\n" )
         f.write( "{}::{}()\n".format( class_name, class_name ) )
-        f.write( ":Cpl::Container::RingBuffer<FSM_EVENT_T>( {}, m_eventQueMemory )\n".format( depth ) )
+        f.write( ":Cpl::Container::RingBuffer<{}_EVENT_T>( {}, m_eventQueMemory )\n".format( macroname, depth ) )
         f.write( ",m_processingFsmEvent(false)\n" )
         f.write( "    {\n" ) 
         f.write( "    }\n" ) 
         f.write( "\n\n" )
-        f.write( "void {}::generateEvent( FSM_EVENT_T msg )\n".format( class_name ) )
+        f.write( "void {}::generateEvent( {}_EVENT_T msg )\n".format( class_name, macroname ) )
         f.write( "    {\n" ) 
         f.write( "    // Queue my event\n" )
         f.write( "    if ( !add( msg ) )\n" )

@@ -118,9 +118,9 @@ def run( argv ):
     
     # Mangle the event names so that I can many FSMs in the same namespace with the same event names
     eventList = get_events_names( oldevt )
-    mangle_event_names( oldevt, eventList, fsm )
-    mangle_event_names( oldfsmcpp, eventList, fsm )
-    mangle_event_names( oldtrace, eventList, fsm )
+    mangle_event_names( oldevt, eventList, fsm, ' ' )
+    mangle_event_names( oldfsmcpp, eventList, fsm, '"', '0', '=' )
+    mangle_event_names( oldtrace, eventList, fsm, '"' )
       
     # Generate Context/Base class
     actions, guards = getContextMethods( fsmdiag )
@@ -178,17 +178,27 @@ def get_events_names( ext_header_file ):
     return events  
 
 #
-def mangle_event_names( file, events, prefix ):
+def mangle_event_names( file, events, prefix, pre_del1, pre_del2=None, pre_del3=None ):
     tmpfile       = file + ".tmp"
-    found_indexes = False          
+    found_indexes = False    
     with open( file ) as inf:
         with open( tmpfile, "w") as outf:  
             for line in inf:
 
                 # Replace event names
                 for e in events:
-                    new_ev = prefix + "_" + e
-                    line   = line.replace(e,new_ev)
+                    # Brute force approach to replacing whole event names (i.e. properly handle evStop & evStopped)
+                    old_ev = pre_del1 + e
+                    new_ev = pre_del1 + prefix + "_" + e
+                    line   = line.replace(old_ev,new_ev,1)
+                    if ( pre_del2 != None ):
+                        old_ev = pre_del2 + e
+                        new_ev = pre_del2 + prefix + "_" + e
+                        line   = line.replace(old_ev,new_ev,1)
+                        if ( pre_del3 != None ):
+                            old_ev = pre_del3 + e
+                            new_ev = pre_del3 + prefix + "_" + e
+                            line   = line.replace(old_ev,new_ev,1)
                     
                 # Fix event name indexes
                 if ( found_indexes ):
@@ -260,6 +270,7 @@ def cleanup_trace( cppfile, namespaces, base, oldfsm, old_trace_headerfile, new_
     tmpfile  = cppfile + ".tmp"
     path     = path_namespaces( namespaces )
     newstate = 'stateVars = stateVarsCopy;'
+    newcount = 0
     
     with open( cppfile ) as inf:
         with open( tmpfile, "w") as outf:  
@@ -267,8 +278,12 @@ def cleanup_trace( cppfile, namespaces, base, oldfsm, old_trace_headerfile, new_
                 outf.write( line )
                 if ( line.find( '#include "{}"'.format(oldfsm) ) != -1):
                     outf.write( '#include "{}{}"\n'.format(path, new_trace_headerfile) )
+                    
+                # Add trace for transitioned TO state (but skip the initialize() method because trace + staticly created instance DON'T mix)    
                 elif ( line.find( newstate ) != -1 ):
-                    outf.write( '    CPL_SYSTEM_TRACE_MSG( SECT_, ( "New State=%s", getNameByState(getInnermostActiveState()) ));\n' )
+                    newcount += 1
+                    if ( newcount > 1 ):
+                        outf.write( '    CPL_SYSTEM_TRACE_MSG( SECT_, ( "New State=%s", getNameByState(getInnermostActiveState()) ));\n' )
     
     os.remove( cppfile )
     os.rename( tmpfile, cppfile )

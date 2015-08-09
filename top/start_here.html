@@ -5686,17 +5686,14 @@ Notes:
     specified: -d, -f, -s, -p, -x, -m, -l, -k, -j
 ```</pre>
 </div>
-<div created="20140727043918143" creator="JohnTaylor" modified="20141020024616426" modifier="JohnTaylor" tags="Overview" title="Workspace Structure">
+<div created="20140727043918143" creator="JohnTaylor" modified="20150809035603581" modifier="JohnTaylor" tags="Overview" title="Workspace Structure">
 <pre>!!NQBP assuming the following about code organization:
 
 * There is a //workspace// directory.  This directory is the parent directory that contains all files being built.  
 ** The extra level of a //workspace// directory is part of NQBP's support for building within [[Outcast|http://integerfox.com/outcast/index.html]]
-
 * Underneath the //workspace// directory is a //package// directory.  
-* The //package// directory contains a directory named &lt;code&gt;top/&lt;/code&gt;.  NQBP out-of-box assumes that the package/code-base is an [[Outcast|http://integerfox.com/outcast/index.html]]
- package. 
-**The &lt;code&gt;top/&lt;/code&gt; directory is used to help find the root of the //package// directory.  If the code-base/package is not an [[Outcast|http://integerfox.com/outcast/index.html]]
- package, the &lt;code&gt;top/&lt;/code&gt; directory can be empty and/or you can edit nqbp's &lt;code&gt;utils.set_pkg_and_wrkspace_roots()&lt;/code&gt; to match your specific organization. 
+* The //package// directory contains a directory named `top/`.  NQBP out-of-box assumes that the package/code-base is an [[Outcast|http://integerfox.com/outcast/index.html]] package. 
+**The `top/` directory is used to help find the root of the //package// directory.  If the code-base/package is not an [[Outcast|http://integerfox.com/outcast/index.html]] package, the &lt;code&gt;top/&lt;/code&gt; directory can be empty and/or you can edit nqbp's &lt;code&gt;utils.set_pkg_and_wrkspace_roots()&lt;/code&gt; to match your specific organization. 
 * There is a //project// sub directory.  The project directory contains the individual project build scripts and any code that is exclusive to the project, i.e. NQBP can ''not'' directly build any source code files in Project B's project directory as part of building Project A.
 ** All //project// directories are under a common root directory named &lt;code&gt;projects/&lt;/code&gt;
 *** NQBP also support an alternate //project// root directory named &lt;code&gt;tests/&lt;/code&gt; that is intended for unit/dev test applications versus production applications/builds

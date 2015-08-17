@@ -8,6 +8,7 @@ from datetime import datetime
 #
 from nqbplib.docopt.docopt import docopt
 from nqbplib import utils
+from other import utils2
 
 
 
@@ -101,7 +102,7 @@ def run( argv, default_local_path, default_global_path, default_root_path, use_o
            
     # Find the Package & Workspace root
     if ( args['--outcast'] ):
-        WRKSPACE_ROOT, PKG_ROOT = set_pkg_and_wrkspace_roots()
+        WRKSPACE_ROOT, PKG_ROOT = utils2.set_pkg_and_wrkspace_roots()
 
     # Print guide
     if ( args['--guide'] ):
@@ -133,7 +134,7 @@ def run( argv, default_local_path, default_global_path, default_root_path, use_o
     header, content = read_template_file( args['<tname>'], iters, args )
 
     # Expand the template file
-    outfd = Output( args['-o'] )
+    outfd = utils2.Output( args['-o'] )
     expand_content( header, content, smap, iters, outfd, args )
     outfd.close()
 
@@ -404,8 +405,8 @@ def process_lcmds( raw_value, lcmd, loper, header, args, lnum, col ):
 
     # Add value
     elif ( lcmd == '+' and loper != None ):
-        voper,foper = string_to_number(loper)
-        v,f         = string_to_number(raw_value)
+        voper,foper = utils2.string_to_number(loper)
+        v,f         = utils2.string_to_number(raw_value)
         if ( foper and f ):
             num = v + voper
             return str(num)
@@ -414,8 +415,8 @@ def process_lcmds( raw_value, lcmd, loper, header, args, lnum, col ):
 
     # Subtract value
     elif ( lcmd == '-' and loper != None ):
-        voper,foper = string_to_number(loper)
-        v,f         = string_to_number(raw_value)
+        voper,foper = utils2.string_to_number(loper)
+        v,f         = utils2.string_to_number(raw_value)
         if ( foper and f ):
             num = v - voper
             return str(num)
@@ -606,17 +607,17 @@ def do_scmd_iterate( max_iter_count, scmd_string ):
  
     # Set values
     if ( len(parms) > 1 ):
-        v,f = string_to_number( parms[1] )  
+        v,f = utils2.string_to_number( parms[1] )  
         if ( f ):
             start = v
 
     if ( len(parms) > 2 ):
-        v,f = string_to_number( parms[2] )  
+        v,f = utils2.string_to_number( parms[2] )  
         if ( f ):
             step = v
    
     if ( len(parms) > 3 ):
-        v,f = string_to_number( parms[3] )  
+        v,f = utils2.string_to_number( parms[3] )  
         if ( f ):
           min_iters = max( max_iter_count, v )
 
@@ -1025,59 +1026,6 @@ def compute_relative_path( args, default_root_path ):
         print "_RELPATH={}".format( args['-r'] )
 
 
-###
-def string_to_number(s):
-    try:
-        z = int(s)
-        return z, True
-    except ValueError:
-        try:
-            z = float(s)
-            return z, True
-        except ValueError:
-            return s, False
-
-
-###
-class Output(object):
-    def __init__( self, outname=None ):
-        if ( outname != None ):
-            try:
-                self.handle = open( outname, 'w' )
-            except EnvironmentError:
-                self.handle = None
-                sys.exit( "ERROR: Cannot open output file: {}".format( outname ) )
-        else:
-            self.handle = sys.stdout
-
-    def write( self, data ):
-        if ( self.handle != None ):
-            self.handle.write( data )
-        else:
-            sys.exit( "ERROR: Invalid output handle" )
-         
-    def close( self ):
-        if ( self.handle is not sys.stdout ):
-            self.handle.close()     
-
-            
-###
-def set_pkg_and_wrkspace_roots():
-    result, wrk_root = run_shell( 'orc --qry-w' )
-    if ( result != 0 ):
-        sys.exit( "ERROR: Cannot execute Outcast's 'orc' command.  Please setup your Outcast environment." )
-    result, pkg_root = run_shell( 'orc --qry-p' )
-    if ( result != 0 ):
-        sys.exit( "ERROR: Cannot execute Outcast's 'orc' command.  Please setup your Outcast environment." )
-
-    return wrk_root, pkg_root
-
-
-###
-def run_shell( cmd ):
-    p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
-    r = p.communicate()
-    return (p.returncode, r[0].strip())
 
 ###
 class Iteration(object):

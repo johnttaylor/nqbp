@@ -277,7 +277,6 @@ def substitute_token( line, header, smap, iters, col, lnum, args ):
 
 ###
 def apply_token_commands( entry, iters, lcmd, loper, rcmd, roper, header, args, lnum, col ):
-    
     # Get value
     raw_value = entry.get_value( iters.get_iter_number() )
 
@@ -287,6 +286,8 @@ def apply_token_commands( entry, iters, lcmd, loper, rcmd, roper, header, args, 
             if ( entry.get_count() > 1 ):
                 return do_rcmd_concatenate( entry, iters, roper, lcmd, loper, header, args, lnum, col )
             else:
+                if ( lcmd != None ):
+                    raw_value = process_lcmds( raw_value, lcmd, loper, header, args, lnum, col )
                 return raw_value
 
         elif ( rcmd == '#' ):
@@ -1216,7 +1217,7 @@ For example, the token operator 'U', will convert the value to all uppercase
 letters before being substituted into the output file.  A token operator is
 specified by a character pair of the token seperator and operator character
 immediately following  the initial token seperator.  For example: To apply the
-uppercase operator to the token - 'name' - use: $U.name.  The following is a
+uppercase operator to the token - 'name' - use: $U<name.  The following is a
 list of currently supported L-Commands:
 
     U   - upper case token value

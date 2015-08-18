@@ -49,14 +49,25 @@ def set_pkg_and_wrkspace_roots():
     if ( result != 0 ):
         sys.exit( "ERROR: Cannot execute Outcast's 'orc' command.  Please setup your Outcast environment." )
 
-    return wrk_root, pkg_root
+    return wrk_root[0].strip(), pkg_root[0].strip()
 
 
 ###
 def run_shell( cmd ):
     p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
     r = p.communicate()
-    return (p.returncode, r[0].strip())
+    return (p.returncode, r)
 
 
     
+###
+def get_relative_subtree( root, subtree_dir ):
+    path   = os.getcwd();
+    src    = os.path.join( root, subtree_dir )
+    return path[len(src)+1:]
+
+
+### 
+def print_shell_output( output ):
+    for l in output:
+        print l

@@ -7,8 +7,10 @@ usage: xcode [options] <template> [<args>...]
        xcode [options]
 
 Options:
-    -v                   Be verbose. 
-    -h, --help           Display help for common options/usage.
+    -c COPYRIGHT        Overrides the default copy right holder
+    -v                  Be verbose. 
+    -g                  Enable debug switch on the 'f4' utility
+    -h, --help          Display help for common options/usage.
     
 
 Type 'xcode help <template>' for help on a specific template.
@@ -78,6 +80,16 @@ def run( argv ):
 
     # Run the command (if it exists)
     else:
+        # Set the default copyright holder
+        if ( not args['-c'] ):
+            args['-c'] = "John T. Taylor"
+       
+        # Convert the debug option to a f4 argument
+        if ( args['-g'] ):
+            args['-g'] = '-g'
+        else:
+            args['-g'] = ''
+             
         # run the command
         load_command( args['<template>'] ).run( args, [args['<template>']] + args['<args>'] )
 

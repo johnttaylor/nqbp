@@ -17,6 +17,7 @@ def string_to_number(s):
             return s, False
 
 
+#------------------------------------------------------------------------------
 ###
 class Output(object):
     def __init__( self, outname=None ):
@@ -39,7 +40,8 @@ class Output(object):
         if ( self.handle is not sys.stdout ):
             self.handle.close()     
 
-            
+
+#------------------------------------------------------------------------------
 ###
 def set_pkg_and_wrkspace_roots():
     result, wrk_root = run_shell( 'orc --qry-w' )
@@ -67,7 +69,16 @@ def get_relative_subtree( root, subtree_dir ):
     return path[len(src)+1:]
 
 
+#------------------------------------------------------------------------------
+###
+def verbose( cmd, output, args ):
+    if ( args['-v'] ):
+        print cmd
+        print_shell_output( output )
+    
+
 ### 
 def print_shell_output( output ):
     for l in output:
         print l
+        

@@ -150,7 +150,7 @@ def expand_content( header, content, smap, iters, outfd, args ):
         print "{}{}".format( iters.get_verbose_indent(), header )
         print "{}{}".format( iters.get_verbose_indent(), smap )
 
-    loop        = True
+    loop = True if iters.get_max_iter_count() > 0 else False
     while( loop ):
         # Verbose
         if ( args['-v'] ):
@@ -429,6 +429,20 @@ def process_lcmds( raw_value, lcmd, loper, header, args, lnum, col ):
     elif ( lcmd == 'r' and loper != None ):
         return loper
         
+    # Conditionally (true) Replace value
+    elif ( lcmd == 't' and loper != None ):
+        if ( raw_value == '0' ):
+            return ''
+        else:
+            return loper
+            
+    # Conditionally (false) Replace value
+    elif ( lcmd == 'f' and loper != None ):
+        if ( raw_value != '0' ):
+            return ''
+        else:
+            return loper
+        
     # Unsupport Command    
     else:
         sys.exit( "ERROR: Unsupported L-Command:{}. File={}, line# {}, col# {}".format( lcmd, header.get_fname(), header.get_line_count() + lnum, col+1 ) ) 
@@ -507,7 +521,7 @@ def process_inline_statement( parms, indent_idx, header, iters, smap, outfd, ind
         newmap.add_entry( entry )
 
     # Build iteration info
-    newiters = calc_iterations( indent, newmap, scmd_string, iters.get_indent_level() )
+    newiters = calc_iterations( indent, newmap, scmd_string, smap, header, lnum, iters.get_indent_level() )
 
     # Expand Subscript
     expand_content( newheader, newcontent, newmap, newiters, outfd, args )
@@ -568,14 +582,14 @@ def process_subscript_statement( parms, header, iters, smap, outfd, indent, lnum
             newmap.add_entry( entry )
 
     # Build iteration info
-    newiters = calc_iterations( indent, newmap, scmd_string, iters.get_indent_level() )
+    newiters = calc_iterations( indent, newmap, scmd_string, smap, header, lnum, iters.get_indent_level() )
     
     # Expand Subscript
     expand_content( newheader, newcontent, newmap, newiters, outfd, args )
    
                 
 ###
-def calc_iterations( indent, smap, scmd_string, old_level ):
+def calc_iterations( indent, smap, scmd_string, parent_map, header, lnum, old_level ):
     # Calculate iterations number based on the Substitution map
     max_iter_count = 1
     for e in smap.get_entries():
@@ -583,21 +597,21 @@ def calc_iterations( indent, smap, scmd_string, old_level ):
             max_iter_count = e.get_iter_count()
 
     # Check for S-Cmd
-    max_iter_count, start, step = do_scmd_iterate( max_iter_count, scmd_string )
+    max_iter_count, start, step = do_scmd_iterate( max_iter_count, scmd_string, parent_map, header, lnum )
 
     # Constructor iteration data structure
     return Iteration( indent, max_iter_count, start, step, old_level + 1 )
     
 
 ### 
-def do_scmd_iterate( max_iter_count, scmd_string ):
+def do_scmd_iterate( max_iter_count, scmd_string, parent_map, header, lnum ):
     # Skip if not the iterate command
     if ( scmd_string == None ):
         return max_iter_count, 0, 1
 
     # Parse parameters. Format: iter [<start> [<step> [<min_iters>]]] 
     parms = scmd_string.strip().split()
-    if ( len(parms) == 0 or parms[0] != 'iter' ):
+    if ( len(parms) == 0 or (parms[0] != 'iter' and parms[0] != 'ITER') ):
         return max_iter_count, 0, 1
      
        
@@ -608,23 +622,42 @@ def do_scmd_iterate( max_iter_count, scmd_string ):
  
     # Set values
     if ( len(parms) > 1 ):
-        v,f = utils2.string_to_number( parms[1] )  
+        v,f = convert_to_number( parms[1], parent_map, header, lnum )  
         if ( f ):
             start = v
 
     if ( len(parms) > 2 ):
-        v,f = utils2.string_to_number( parms[2] )  
+        v,f = convert_to_number( parms[2], parent_map, header, lnum )  
         if ( f ):
             step = v
    
     if ( len(parms) > 3 ):
-        v,f = utils2.string_to_number( parms[3] )  
+        v,f = convert_to_number( parms[3], parent_map, header, lnum )  
         if ( f ):
-          min_iters = max( max_iter_count, v )
+            if ( parms[0] == 'iter' ):
+                min_iters = max( max_iter_count, v )
+            else:     
+                min_iters = v
 
     # Return results
     return min_iters, start, step
 
+
+### 
+def convert_to_number( parm, parent_map, header, lnum ):
+    print "parm=[{}]".format( parm )
+    if ( parm.startswith('$') and parm.endswith('$') ):
+        # Get map index for token ID
+        idx = header.find_token( parm[1:-1] )
+        if ( idx == -1 ):
+            sys.exit( "ERROR: _SUBSCRIPT/_INLINE statement - Invalid S-CMD token name: {}. File={}, line# {}".format( parm[1:-1], header.get_fname(), header.get_line_count() + lnum ) ) 
+        entry = parent_map.get_entry( idx )
+        if ( entry == None ):
+            sys.exit( "ERROR: _SUBSCRIPT/_INLINE statement - No matching map entry for S-CMD token_id={}. File={}, line# {}".format( parm[1:-1], header.get_fname(), header.get_line_count() + lnum ) ) 
+        parm = entry.get_raw_value()
+        
+    return utils2.string_to_number( parm )  
+        
 
 ###
 def convert_to_map_entry( token_id, header, smap, iters, args, lnum ):
@@ -1231,7 +1264,12 @@ list of currently supported L-Commands:
           done.
     r   - Replace the token value with the L-cmd operand parameter.  This is
           typically used in conjunction with the R-Cmd '+' operator.
-
+    t   - Conditionally replace the token value with the L-cmd operand parameter 
+          when the token values does NOT equal '0'; else the token is replaced
+          with a null value
+    f   - Conditionally replace the token value with the L-cmd operand parameter 
+          when the token values does equal '0'; else the token is replaced
+          with a null value
 
 
 R-COMMANDS:
@@ -1384,6 +1422,20 @@ following is a list of currently supported S-Commands:
         the maximum of <min_iters> value and the iteration count derived from 
         the Substitution Map. 
         
+        The <start>, <step>, and <min_iters> values numeric constants or
+        taken from token values.  The syntax for using a token value is
+        '$tokenname$.  For example:
+            
+            $_SUBSCRIPT, mytemplate.f4t : iter $token_startingValue$ 2 5
+            
+            
+        
+        ITER <start> <step> <min_iters> 
+        
+        This command is the same as 'iter' except ALL arguments are required
+        AND the actual number of iterations is ONLY defined by the ITER
+        command, i.e. NOT a union of the ITER command and the iteration count
+        derived from the Substitution map.
         
         
 

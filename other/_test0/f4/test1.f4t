@@ -4,6 +4,8 @@ title
 subtitle
 names
 values
+start_num
+max_num
 
 #CONTENT
 /// Test escape sequences
@@ -48,6 +50,11 @@ year=$_YYYY$, month=$_MM$, day=$_DD$, "$_RELPATH>+::$"
 $_INLINE, names: iter 100 10 10
    $names$ = { $_ITERNUM$, $_ITERVAL$ }
 $_END_INLINE
+
+$_INLINE, names: ITER $start_num$ 20 $max_num$
+   $names$ = { $_ITERNUM$, $_ITERVAL$ }
+$_END_INLINE
+   
 
 /// Test R-Cmd: iterations (f,F,l,L)
 /// All iterations

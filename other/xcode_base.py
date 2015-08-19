@@ -7,7 +7,9 @@ usage: xcode [options] <template> [<args>...]
        xcode [options]
 
 Options:
-    -c COPYRIGHT        Overrides the default copy right holder
+    -n NAMESPACE        Explicity provide the namespace. Format: "N1::N2::N3.."
+                        The default operation is to derive the namespace(s) from
+                        the current working directory.
     -v                  Be verbose. 
     -g                  Enable debug switch on the 'f4' utility
     -h, --help          Display help for common options/usage.
@@ -23,8 +25,12 @@ from subprocess import call
 
 from nqbplib.docopt.docopt import docopt
 from nqbplib import utils
+from other import utils2
 
 
+# globals
+WRKSPACE_ROOT = ''
+PKG_ROOT      = ''
 
 
 #------------------------------------------------------------------------------
@@ -80,10 +86,19 @@ def run( argv ):
 
     # Run the command (if it exists)
     else:
-        # Set the default copyright holder
-        if ( not args['-c'] ):
-            args['-c'] = "John T. Taylor"
-       
+        global WRKSPACE_ROOT
+        global PKG_ROOT
+    
+        # Get workspace/package info
+        WRKSPACE_ROOT, PKG_ROOT = utils2.set_pkg_and_wrkspace_roots()
+    
+        # Get namespace as a list
+        if ( args['-n'] ):
+            namespaces = args['-n'].split('::')
+        else:
+            namespaces = utils2.get_relative_subtree( PKG_ROOT, 'src' ).split( os.sep )
+        args['-n'] = ','.join( namespaces )
+        
         # Convert the debug option to a f4 argument
         if ( args['-g'] ):
             args['-g'] = '-g'

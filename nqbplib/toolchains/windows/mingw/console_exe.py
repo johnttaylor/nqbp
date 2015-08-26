@@ -21,10 +21,6 @@ class ToolChain( base.ToolChain ):
         # statically link my C/C++ libraries
         self._base_release.linkflags  = self._base_release.linkflags + ' -static -static-libgcc -static-libstdc++ '
 
-        # Work-around for Memory leak in Mingw 4.8.n versions
-        # See http://gcc.gnu.org/bugzilla/show_bug.cgi?id=56746
-        self._base_release.cflags     = self._base_release.cflags + ' -ftrack-macro-expansion=0 '
-        
         #
         # Build Config/Variant: "xyz"
         #

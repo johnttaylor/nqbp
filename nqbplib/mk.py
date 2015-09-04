@@ -189,7 +189,7 @@ def do_build( toolchain, arguments, variant ):
     # Compile only a single directory    
     if ( arguments['-d'] ):
         clean_pkg = clean_ext = bld_prj = do_link = bld_libs = False
-        dir       = arguments['-d']
+        dir       = utils.standardize_dir_sep( arguments['-d'] )
         entry     = 'local'
 
         # Trap directory is relative to the package root
@@ -349,31 +349,33 @@ def build_single_file( arguments, toolchain ):
 
     # Get file to compile
     is_project_dir = False
-    fname          = arguments['-f']
-    srcpath        = NQBP_PKG_ROOT()
+    fname          = utils.standardize_dir_sep( arguments['-f'] )
+    srcpath        = NQBP_PKG_ROOT() + os.sep
     
-    # Trap that file is relative to workspace root
+    # Trap that file is relative to package root
     if ( fname.startswith(os.sep) ):
         fname   = fname[1:]
-        srcpath = NQBP_PKG_ROOT()
+        srcpath = NQBP_PKG_ROOT() + os.sep
             
     # Trap that file is relative to workspace root
     elif ( fname.startswith(os.sep+os.sep) ):
         fname   = fname[2:]
-        srcpath = NQBP_WORK_ROOT()
+        srcpath = NQBP_WORK_ROOT() + os.sep
             
-    # Trap that file is relative to the package root
+    # Trap that file is relative to the build directory
     elif ( fname.startswith('.') ):
-        fname          = fname[2:]
-        srcpath        = '.'
+        srcpath        = os.getcwd() + os.sep
         is_project_dir = True
         
     # create object directory 
-    dir = utils.create_subdirectory_from_file( os.getcwd(), fname )
+    if ( is_project_dir ):
+        dir = os.getcwd()
+    else:
+        dir = utils.create_subdirectory_from_file( os.getcwd(), fname )
     
     # call toolchain compile method
     utils.push_dir( dir )
-    toolchain.cc( arguments, srcpath + os.sep + fname )
+    toolchain.cc( arguments, srcpath + fname )
 
     # build archive (when not compiling a file in the project directory)
     if ( not is_project_dir ):

@@ -20,7 +20,7 @@ class ToolChain( base.ToolChain ):
         
         # statically link my C/C++ libraries
         self._base_release.linkflags  = self._base_release.linkflags + ' -static -static-libgcc -static-libstdc++ '
-        
+
         #
         # Build Config/Variant: "xyz"
         #

@@ -62,10 +62,14 @@ Arguments:
                    '//') then the file is relative to the workspace root. A 
                    'FILE' in the project directory can be compile by prefixing 
                    'FILE' with './' or '.\\' (i.e. current directory).
-  -s DIR           Skips all entries in libdirs.b BEFORE 'DIR', i.e. start 
-                   with 'DIR'.  Note: 'DIR' is with respect to the 
-                   expanded list of directories, i.e. after any included 
-                   libdirs.b files are expanded.
+  -s DIR           Skips all entries in libdirs.b BEFORE 'DIR', i.e. start with 
+                   'DIR'.  Note: 'DIR' is with respect to the expanded list of 
+                   directories, i.e. after any included libdirs.b files are 
+                   expanded.
+  -e DIR           Skip all entries in libdirs.b AFTER 'DIR', i.e. stop 
+                   building directories once 'DIR' has been built. Note: 'DIR' 
+                   is with respect to the expanded list of directories, i.e. 
+                   after any included libdirs.b files are expanded.
   -p               Skips all external directories and/or libdirs.b files.
   -x               Skips all the package's directories and/or libdirs.b files
   -m               Compiles all of the project directory.
@@ -102,7 +106,7 @@ def build( argv, toolchain ):
 
     # Process command line args...
     arguments = docopt(usage, version=NQBP_VERSION() )
-
+    
     # Set default build variant 
     if ( not arguments['-b'] ):
         arguments['-b'] = toolchain.get_default_variant()
@@ -110,6 +114,7 @@ def build( argv, toolchain ):
     
     # Pre-build steps
     pre_build_steps( toolchain, arguments )
+    utils.debug( arguments )
 
     # Process 'non-build' options
     if ( arguments['--qry-blds'] ):
@@ -173,7 +178,7 @@ def do_build( toolchain, arguments, variant ):
     bld_libs  = True
     
     # Skip cleaning when selective building of libdirs.b
-    if ( arguments['-p'] or arguments['-x'] or arguments['-s'] ):
+    if ( arguments['-p'] or arguments['-x'] or arguments['-s']  or arguments['-e']):
         clean_pkg = clean_ext = False
         
     # Compile only a single file    
@@ -243,7 +248,7 @@ def do_build( toolchain, arguments, variant ):
         # Filter directories when '-s' option is used
         if ( arguments['-s'] ):
             skip     = True
-            startdir = arguments['-s']
+            startdir = utils.standardize_dir_sep( arguments['-s'] )
             
             # Trap special case of using 'xpkgs' directory
             if ( startdir.startswith(NQBP_WRKPKGS_DIRNAME()) ):
@@ -253,12 +258,22 @@ def do_build( toolchain, arguments, variant ):
             skip     = False
             startdir = ''
         
+        # Filter directories when '-e' option is used
+        stop    = False
+        stopdir = None
+        if ( arguments['-e'] ):
+            stopdir = utils.standardize_dir_sep( arguments['-e'] )
+            
+            # Trap special case of using 'xpkgs' directory
+            if ( stopdir.startswith(NQBP_WRKPKGS_DIRNAME()) ):
+                stopdir = os.sep + stopdir[len(NQBP_WRKPKGS_DIRNAME())+1:]
+        
         # Build all directories    
         for d in libdirs:
-            skip = build_single_directory( arguments, toolchain, d[0], d[1], skip, startdir )
+            skip, stop = build_single_directory( arguments, toolchain, d[0], d[1], skip, startdir, stop, stopdir )
     
     # Build project dir
-    if ( bld_prj ):
+    if ( bld_prj and not stop ):
         # Banner 
         utils.output( "=====================" )
         utils.output( "= Building Project Directory:" )
@@ -366,7 +381,7 @@ def build_single_file( arguments, toolchain ):
     utils.pop_dir()
     
 #-----------------------------------------------------------------------------
-def build_single_directory( arguments, toolchain, dir, entry, skip=False, startdir=None ):
+def build_single_directory( arguments, toolchain, dir, entry, skip=False, startdir=None, stop=False, stopdir=None ):
    
     srcpath = ''
     display = ''
@@ -388,15 +403,25 @@ def build_single_directory( arguments, toolchain, dir, entry, skip=False, startd
 
     # Handle the skip option
     if ( skip ):
-    
-    
         # match start directory
         if ( startdir != display ):
             utils.output( "= Skippping directory: " + display )
-            return True
+            return True, stop
         else:
             skip = False
 
+    # Handle the stop option
+    if ( stopdir != None ):
+        # indicate that directories are being skipped
+        if ( stop ):
+            utils.output( "= Skippping directory: " + display )
+            return skip, stop
+            
+        # match stop directory
+        if ( stopdir == display ):
+            stop = True
+        
+        
     # Banner 
     utils.output( "=====================" )
     utils.output( "= Building Directory: " + display )
@@ -429,5 +454,5 @@ def build_single_directory( arguments, toolchain, dir, entry, skip=False, startd
     toolchain.ar( arguments )
     utils.pop_dir()
 
-    # return skip status
-    return skip
+    # return skip/stop status
+    return skip, stop

@@ -91,7 +91,7 @@ Arguments:
 Notes:
     Default operation is to do an implicit BUILD ALL and CLEAN ALL on each 
     build.  The exception to this rule is when one of the following options are  
-    specified: -d, -f, -s, -p, -x, -m, -l, -k, -j   
+    specified: -d, -f, -s, -e, -p, -x, -m, -l, -k, -j   
          
 Examples:
 

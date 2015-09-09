@@ -75,7 +75,7 @@ Arguments:
   -m               Compiles all of the project directory.
   -g               Debug build (default is release build.
   -v               Display Compiler/linker options.
-  -l               Link ONLY (can be combinded with '-mpdfsa' options).
+  -l               Link ONLY (can be combinded with '-mpxdfse' options).
   -k               Cleans only the package's objects/files (use with '-p')
   -j               Cleans only the external objects/files (use with '-x').
   -z, --clean-all  Cleans ALL files for ALL build configurations and then exits

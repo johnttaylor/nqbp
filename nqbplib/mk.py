@@ -176,6 +176,7 @@ def do_build( toolchain, arguments, variant ):
     bld_prj   = True
     do_link   = True
     bld_libs  = True
+    stop      = False
     
     # Skip cleaning when selective building of libdirs.b
     if ( arguments['-p'] or arguments['-x'] or arguments['-s']  or arguments['-e']):
@@ -259,7 +260,6 @@ def do_build( toolchain, arguments, variant ):
             startdir = ''
         
         # Filter directories when '-e' option is used
-        stop    = False
         stopdir = None
         if ( arguments['-e'] ):
             stopdir = utils.standardize_dir_sep( arguments['-e'] )

@@ -17,6 +17,9 @@ class ToolChain( base.ToolChain ):
         base.ToolChain.__init__( self, exename, prjdir, build_variants, default_variant )
         self._ccname = 'Mingw_W64'
         
+        # Turn off ALL optimization on the debug build
+        self._debug_release.cflags   = self._debug_release.cflags + ' -O0'
+        
         # statically link my C/C++ libraries
         #self._base_release.linkflags  = self._base_release.linkflags + ' -static -static-libgcc -static-libstdc++ '
         

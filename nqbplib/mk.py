@@ -49,7 +49,8 @@ Arguments:
                    release build. What 'variants' are available is Toolchain 
                    specific. The default is variant is determined by the
                    mytoolchain.py script.
-  --bld-all        Builds all variants
+  --bld-all        Builds all variants.  Does NOT build variants that start 
+                   with a leading '_'.
   -d DIR           Compile ONLY the specified directory relative to the pkg 
                    root. If 'DIR' starts with a directory seperator ('\\' or 
                    '/') then the directory is relative to the package root. If
@@ -142,7 +143,8 @@ def build( argv, toolchain ):
     # Start the selected build(s)
     if ( arguments['--bld-all'] ):
         for b in toolchain.get_variants():
-            do_build( toolchain, arguments, b )
+            if ( not b.startswith("_") ):
+                do_build( toolchain, arguments, b )
     else: 
         do_build( toolchain, arguments, arguments['-b'] )        
             

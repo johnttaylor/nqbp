@@ -1,11 +1,15 @@
 """ Global variables """
 
 import os
+import logging
     
 # Globals
 _NQBP_WORK_ROOT = ''
 _NQBP_PRJ_DIR   = ''
 _NQBP_PKG_ROOT  = ''
+
+# Initialize globals
+OUT = logging.getLogger( 'nqbp' )
 
 #
 def NQBP_VERSION():

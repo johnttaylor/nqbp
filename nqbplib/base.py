@@ -79,6 +79,7 @@ class ToolChain:
         self._build_time_utc  = int(time.time())
         self._cflag_symdef    = '-D'
         self._asmflag_symdef  = '-D'
+        self._printer         = None
         
         # Tools
         self._ccname   = 'Generic GCC'
@@ -149,16 +150,20 @@ class ToolChain:
         
     
     #--------------------------------------------------------------------------
+    def set_printer(self, printer):
+        self._printer = printer
+        
+    #--------------------------------------------------------------------------
     def get_default_variant(self):
         return self._bld
         
         
     #--------------------------------------------------------------------------
     def list_variants(self):
-        utils.output( 'Available Build Configurations/Variants:' )
+        self._printer.output( 'Available Build Configurations/Variants:' )
         for key in self._bld_variants.keys():
             marker = ' *' if key == self._bld else ''
-            utils.output( '  {}{}'.format(key,marker) )
+            self._printer.output( '  {}{}'.format(key,marker) )
            
         
     
@@ -166,11 +171,11 @@ class ToolChain:
     def clean(self, pkg, ext, silent=False):
         if ( pkg == True ):
             if ( not silent ):
-                utils.output( "= Cleaning Project and local Package derived objects..." )
-            utils.debug( '# Cleaning file extensions: {}'.format( self._clean_list ) )
+                self._printer.output( "= Cleaning Project and local Package derived objects..." )
+            self._printer.debug( '# Cleaning file extensions: {}'.format( self._clean_list ) )
             utils.del_files_by_ext( NQBP_PRJ_DIR(), self._clean_list )
 
-            utils.debug( '# Cleaning directories: {}'.format( self._clean_pkg_dirs ) )
+            self._printer.debug( '# Cleaning directories: {}'.format( self._clean_pkg_dirs ) )
             for d in self._clean_pkg_dirs:
                 if ( os.path.exists(d) ):
                     shutil.rmtree( d, True )
@@ -182,8 +187,8 @@ class ToolChain:
                             
         if ( ext == True ):
             if ( not silent ):
-                utils.output( "= Cleaning External Package derived objects..." )
-            utils.debug( '# Cleaning directories: {}'.format( self._clean_ext_dirs ) )
+                self._printer.output( "= Cleaning External Package derived objects..." )
+            self._printer.debug( '# Cleaning directories: {}'.format( self._clean_ext_dirs ) )
             for d in self._clean_ext_dirs:
                 if ( os.path.exists(d) ):
                     shutil.rmtree( d, True )
@@ -192,8 +197,8 @@ class ToolChain:
     def clean_all( self, arguments, silent=False ):            
         for b in self.get_variants():
             if ( not silent ):
-                utils.output( "=====================" )
-                utils.output( "= Build Variant: " + b )
+                self._printer.output( "=====================" )
+                self._printer.output( "= Build Variant: " + b )
             self.pre_build( b, arguments )
             self.clean(True,True,silent)
     
@@ -234,15 +239,15 @@ class ToolChain:
         
     #--------------------------------------------------------------------------
     def pre_build(self, bld_var, arguments ):
-        utils.debug( '# ENTER: base.ToolChain.pre_build' )
+        self._printer.debug( '# ENTER: base.ToolChain.pre_build' )
         
         # Select/set build variant
         self._bld = bld_var
         if ( not self._bld_variants.has_key(bld_var) ):
-            utils.output( 'ERROR: Invalid variant ({}) selected'.format( bld_var ) )
+            self._printer.output( 'ERROR: Invalid variant ({}) selected'.format( bld_var ) )
             sys.exit(1)
             
-        utils.debug( '# Build Variant "{}" selected'.format( self._bld ) )
+        self._printer.debug( '# Build Variant "{}" selected'.format( self._bld ) )
         if ( arguments['--debug'] ):
             self._dump_variants( self._bld_variants )
                       
@@ -266,15 +271,15 @@ class ToolChain:
             self._all_opts.append( bld.get('user_optimized', null ) )
             
         if ( arguments['--debug'] ):
-            utils.debug( "# Final 'all_opts'" )
+            self._printer.debug( "# Final 'all_opts'" )
             self._dump_options(  self._all_opts, True )
             
 
     #--------------------------------------------------------------------------
     def ar( self, arguments ):
         # NOTE: Assumes archive is to be built in the current working dir
-        utils.output("=" )
-        utils.output("= Archiving: {}".format( self._ar_library_name) )
+        self._printer.output("=" )
+        self._printer.output("= Archiving: {}".format( self._ar_library_name) )
         
         # remove existing archive
         utils.delete_file( self._ar_library_name )
@@ -289,11 +294,11 @@ class ToolChain:
             
         # run command            
         if ( arguments['-v'] ):
-            utils.output( cmd )
-        if (utils.run_shell(cmd) ):
-            utils.output("=")
-            utils.output("= Build Failed: archiver/libririan error")
-            utils.output("=")
+            self._printer.output( cmd )
+        if (utils.run_shell(self._printer, cmd) ):
+            self._printer.output("=")
+            self._printer.output("= Build Failed: archiver/libririan error")
+            self._printer.output("=")
             sys.exit(1)
         
                    
@@ -303,7 +308,7 @@ class ToolChain:
         p  = subprocess.Popen( cc, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
         r  = p.communicate()
         if ( p.returncode ):
-            utils.output( "ERROR: Cannot validate toolchain ({}) - check your path/environment variable(s)".format( self._ccname ) )
+            self._printer.output( "ERROR: Cannot validate toolchain ({}) - check your path/environment variable(s)".format( self._ccname ) )
             sys.exit(1)
       
         return r
@@ -329,7 +334,7 @@ class ToolChain:
                                     self._all_opts.asminc
                                   )
         else:
-            utils.output( "ERROR: No rule to compile the file: {}".format( os.path.basename(fullname) ) )
+            self._printer.output( "ERROR: No rule to compile the file: {}".format( os.path.basename(fullname) ) )
             sys.exit(1)
 
         # Do any subsitition of the 'ME_xxx' values
@@ -343,15 +348,15 @@ class ToolChain:
         
         # Output Progress...
         if ( self._echo_cc ):
-            utils.output("= Compiling: " + os.path.basename(fullname) )
+            self._printer.output("= Compiling: " + os.path.basename(fullname) )
         if ( arguments['-v'] ):
-            utils.output( cc )
+            self._printer.output( cc )
         
         # do the compile
-        if ( utils.run_shell(cc) ):
-            utils.output("=")
-            utils.output("= Build Failed: compiler error")
-            utils.output("=")
+        if ( utils.run_shell(self._printer, cc) ):
+            self._printer.output("=")
+            self._printer.output("= Build Failed: compiler error")
+            self._printer.output("=")
             sys.exit(1)
 
 
@@ -360,8 +365,8 @@ class ToolChain:
     def link( self, arguments, inf, local_external_setting, variant ):
 
         # Output Progress...
-        utils.output( "=====================" )
-        utils.output("= Linking..." )
+        self._printer.output( "=====================" )
+        self._printer.output("= Linking..." )
 
         # create build variant output
         vardir = '_' + self._bld
@@ -393,11 +398,11 @@ class ToolChain:
                                           
         # do the compile
         if ( arguments['-v'] ):
-            utils.output( ld )
-        if ( utils.run_shell(ld) ):
-            utils.output("=")
-            utils.output("= Build Failed: linker error")
-            utils.output("=")
+            self._printer.output( ld )
+        if ( utils.run_shell(self._printer, ld) ):
+            self._printer.output("=")
+            self._printer.output("= Build Failed: linker error")
+            self._printer.output("=")
             sys.exit(1)
 
         # Return to project dir
@@ -436,23 +441,23 @@ class ToolChain:
         
     #--------------------------------------------------------------------------
     def _dump_variants( self, bld_variants ):
-        utils.debug( '# Build Variants Options' )
+        self._printer.debug( '# Build Variants Options' )
         for k,v in bld_variants.items():
-            utils.debug( '#  VARIANT: ' + k )
+            self._printer.debug( '#  VARIANT: ' + k )
             for sk,sv in v.items():
                 if ( sk != 'nop' ):
-                    utils.debug( '#    Options: '      + sk )
+                    self._printer.debug( '#    Options: '      + sk )
                     self._dump_options( sv )
                     
     def _dump_options( self, sv, extraSpace=False ):
-        utils.debug( '#      inc:        ' + sv.inc        + ("\n" if extraSpace else " "))
-        utils.debug( '#      asminc:     ' + sv.asminc     + ("\n" if extraSpace else " "))
-        utils.debug( '#      cflags:     ' + sv.cflags     + ("\n" if extraSpace else " "))
-        utils.debug( '#      cppflags:   ' + sv.cppflags   + ("\n" if extraSpace else " "))
-        utils.debug( '#      asmflags:   ' + sv.asmflags   + ("\n" if extraSpace else " "))
-        utils.debug( '#      linkflags:  ' + sv.linkflags  + ("\n" if extraSpace else " "))
-        utils.debug( '#      linklibs:   ' + sv.linklibs   + ("\n" if extraSpace else " "))
-        utils.debug( '#      firstobjs:  ' + sv.firstobjs  + ("\n" if extraSpace else " "))
-        utils.debug( '#      linkscript: ' + sv.linkscript + ("\n" if extraSpace else " "))
+        self._printer.debug( '#      inc:        ' + sv.inc        + ("\n" if extraSpace else " "))
+        self._printer.debug( '#      asminc:     ' + sv.asminc     + ("\n" if extraSpace else " "))
+        self._printer.debug( '#      cflags:     ' + sv.cflags     + ("\n" if extraSpace else " "))
+        self._printer.debug( '#      cppflags:   ' + sv.cppflags   + ("\n" if extraSpace else " "))
+        self._printer.debug( '#      asmflags:   ' + sv.asmflags   + ("\n" if extraSpace else " "))
+        self._printer.debug( '#      linkflags:  ' + sv.linkflags  + ("\n" if extraSpace else " "))
+        self._printer.debug( '#      linklibs:   ' + sv.linklibs   + ("\n" if extraSpace else " "))
+        self._printer.debug( '#      firstobjs:  ' + sv.firstobjs  + ("\n" if extraSpace else " "))
+        self._printer.debug( '#      linkscript: ' + sv.linkscript + ("\n" if extraSpace else " "))
   
                                                                          

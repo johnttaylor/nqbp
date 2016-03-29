@@ -16,11 +16,15 @@ import sys
 import os
 import logging
 import time
+from multiprocessing import Process
+
 #
 from nqbplib.docopt.docopt import docopt
 from base import ToolChain
+from output import Printer
 import base
 import utils
+import multiprocessing
 
     
 # Globals
@@ -108,14 +112,19 @@ def build( argv, toolchain ):
     # Process command line args...
     arguments = docopt(usage, version=NQBP_VERSION() )
     
+    # Create printer (and tell the toolchain about it)
+    logfile = os.path.join( os.getcwd(), 'make.log' )
+    printer = Printer( multiprocessing.Lock(), logfile, start_new_file=True );
+    toolchain.set_printer( printer )
+
     # Set default build variant 
     if ( not arguments['-b'] ):
         arguments['-b'] = toolchain.get_default_variant()
     
     
     # Pre-build steps
-    pre_build_steps( toolchain, arguments )
-    utils.debug( arguments )
+    pre_build_steps( printer, toolchain, arguments )
+    printer.debug( str(arguments) )
 
     # Process 'non-build' options
     if ( arguments['--qry-blds'] ):
@@ -123,18 +132,18 @@ def build( argv, toolchain ):
         sys.exit()
     
     if ( arguments['--qry'] ):
-        utils.output( '%s', NQBP_PRJ_DIR() )
+        printer.output( NQBP_PRJ_DIR() )
         sys.exit()
        
     if ( arguments['--qry-and-clean'] ):
-        utils.output( "%s", NQBP_PRJ_DIR() )
+        printer.output( NQBP_PRJ_DIR() )
         toolchain.clean_all( arguments, silent=True )
-        utils.remove_log_file()
+        printer.remove_log_file()
         sys.exit()
     
     if ( arguments['--clean-all'] ):
         toolchain.clean_all( arguments )
-        utils.remove_log_file()
+        printer.remove_log_file()
         sys.exit()
         
     # Validate Compiler toolchain is set properly (ONLY after non-build options have been processed, i.e. don't have to have an 'active' toolchain for non-build options to work)
@@ -144,33 +153,33 @@ def build( argv, toolchain ):
     if ( arguments['--bld-all'] ):
         for b in toolchain.get_variants():
             if ( not b.startswith("_") ):
-                do_build( toolchain, arguments, b )
+                do_build( printer, toolchain, arguments, b )
     else: 
-        do_build( toolchain, arguments, arguments['-b'] )        
+        do_build( printer, toolchain, arguments, arguments['-b'] )        
             
            
 
 #-----------------------------------------------------------------------------
-def do_build( toolchain, arguments, variant ):
+def do_build( printer, toolchain, arguments, variant ):
     # Set the build variant
     toolchain.pre_build( variant, arguments )
 
     # Output start banner
-    start_banner(toolchain)
+    start_banner(printer, toolchain)
      
     # Spit out handy-dandy debug info
-    utils.debug( '# NQBP version   = ' + NQBP_VERSION() )
-    utils.debug( '# NQBP_BIN       = ' + os.path.dirname(os.path.abspath(__file__)) )
-    utils.debug( '# NQBP_WORK_ROOT = ' + NQBP_WORK_ROOT() )
-    utils.debug( '# NQBP_PKG_ROOT  = ' + NQBP_PKG_ROOT() )
-    utils.debug( '# Project Dir    = ' + NQBP_PRJ_DIR() )
+    printer.debug( '# NQBP version   = ' + NQBP_VERSION() )
+    printer.debug( '# NQBP_BIN       = ' + os.path.dirname(os.path.abspath(__file__)) )
+    printer.debug( '# NQBP_WORK_ROOT = ' + NQBP_WORK_ROOT() )
+    printer.debug( '# NQBP_PKG_ROOT  = ' + NQBP_PKG_ROOT() )
+    printer.debug( '# Project Dir    = ' + NQBP_PRJ_DIR() )
     
     # Create/expand my working libdirs.b file
     libdirs = []
     inf = open( NQBP_NAME_LIBDIRS(), 'r' )
     utils.create_working_libdirs( inf, arguments, libdirs, 'local', variant )  
     inf.close()
-    utils.list_libdirs( libdirs )
+    utils.list_libdirs( printer, libdirs )
     
     # Set default operations
     clean_pkg = True
@@ -272,16 +281,16 @@ def do_build( toolchain, arguments, variant ):
         
         # Build all directories    
         for d in libdirs:
-            skip, stop = build_single_directory( arguments, toolchain, d[0], d[1], skip, startdir, stop, stopdir )
+            skip, stop = build_single_directory( printer, arguments, toolchain, d[0], d[1], skip, startdir, stop, stopdir )
     
     # Build project dir
     if ( bld_prj and not stop ):
         # Banner 
-        utils.output( "=====================" )
-        utils.output( "= Building Project Directory:" )
+        printer.output( "=====================" )
+        printer.output( "= Building Project Directory:" )
     
         # check for existing 'sources.b' file 
-        files = utils.get_files_to_build( toolchain, '.', NQBP_NAME_SOURCES() )
+        files = utils.get_files_to_build( printer, toolchain, '.', NQBP_NAME_SOURCES() )
 
         # compile files
         for f in files:
@@ -294,42 +303,39 @@ def do_build( toolchain, arguments, variant ):
         inf.close()
                             
     # Output end banner
-    end_banner(toolchain)
+    end_banner(printer, toolchain)
      
            
 #-----------------------------------------------------------------------------
-def pre_build_steps(toolchain, arguments ):
+def pre_build_steps(printer, toolchain, arguments ):
 
-    # Enable only 'normal' outputs
-    utils.enable_ouptut()
-    
     # Enable verbose logging (if selected)
     if ( arguments['-v'] ):
-        utils.enable_verbose()
+        printer.enable_verbose()
     
     # Enable debugging logging (if selected) note: order is important here -->must follow enable.verbose()    
     if ( arguments['--debug'] ):
-        utils.enable_debug()
+        printer.enable_debug()
         
         
             
 #-----------------------------------------------------------------------------
-def start_banner(toolchain):
+def start_banner(printer, toolchain):
 
     # 
     start = int( toolchain.get_build_time() ) 
-    utils.output('')
-    utils.output( '=' * 80 );
-    utils.output( '= START of build for:  %s', toolchain.get_final_output_name() )
-    utils.output( '= Toolchain:           %s', toolchain.get_ccname() )
-    utils.output( '= Build Configuration: %s', toolchain.get_build_variant() )
-    utils.output( '= Begin (UTC):         %s', time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()) )
-    utils.output( '= Build Time:          %d (%X)', start, start )
-    utils.output( '=' * 80 );
+    printer.output('')
+    printer.output( '=' * 80 );
+    printer.output( '= START of build for:  {}'.format( toolchain.get_final_output_name()) )
+    printer.output( '= Toolchain:           {}'.format( toolchain.get_ccname()) )
+    printer.output( '= Build Configuration: {}'.format( toolchain.get_build_variant()) )
+    printer.output( '= Begin (UTC):         {}'.format( time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())) )
+    printer.output( '= Build Time:          {:d} ({:x})'.format( start, start ) )
+    printer.output( '=' * 80 );
 
         
 #-----------------------------------------------------------------------------
-def end_banner(toolchain):
+def end_banner(printer, toolchain):
 
     # Calculate elasped time in hhh mm ss    
     elasped = int(time.time() - toolchain.get_build_time()) 
@@ -338,16 +344,16 @@ def end_banner(toolchain):
     ss      = elasped % 60
     
     # 
-    utils.output( '=' * 80 );
-    utils.output( '= END of build for:    %s', toolchain.get_final_output_name() )
-    utils.output( '= Toolchain:           %s', toolchain.get_ccname() )
-    utils.output( '= Build Configuration: %s', toolchain.get_build_variant() )
-    utils.output( '= Elapsed Time (hh mm:ss): {:02d} {:02d}:{:02d}'.format(hhh, mm, ss) )
-    utils.output( '=' * 80 );
+    printer.output( '=' * 80 );
+    printer.output( '= END of build for:    {}'.format( toolchain.get_final_output_name()) )
+    printer.output( '= Toolchain:           {}'.format( toolchain.get_ccname()) )
+    printer.output( '= Build Configuration: {}'.format( toolchain.get_build_variant()) )
+    printer.output( '= Elapsed Time (hh mm:ss): {:02d} {:02d}:{:02d}'.format(hhh, mm, ss) )
+    printer.output( '=' * 80 );
 
     
 #-----------------------------------------------------------------------------
-def build_single_file( arguments, toolchain ):
+def build_single_file( printer, arguments, toolchain ):
 
     # Get file to compile
     is_project_dir = False
@@ -385,7 +391,7 @@ def build_single_file( arguments, toolchain ):
     utils.pop_dir()
     
 #-----------------------------------------------------------------------------
-def build_single_directory( arguments, toolchain, dir, entry, skip=False, startdir=None, stop=False, stopdir=None ):
+def build_single_directory( printer, arguments, toolchain, dir, entry, skip=False, startdir=None, stop=False, stopdir=None ):
    
     srcpath = ''
     display = ''
@@ -409,7 +415,7 @@ def build_single_directory( arguments, toolchain, dir, entry, skip=False, startd
     if ( skip ):
         # match start directory
         if ( startdir != display ):
-            utils.output( "= Skippping directory: " + display )
+            printer.output( "= Skippping directory: " + display )
             return True, stop
         else:
             skip = False
@@ -418,7 +424,7 @@ def build_single_directory( arguments, toolchain, dir, entry, skip=False, startd
     if ( stopdir != None ):
         # indicate that directories are being skipped
         if ( stop ):
-            utils.output( "= Skippping directory: " + display )
+            printer.output( "= Skippping directory: " + display )
             return skip, stop
             
         # match stop directory
@@ -427,20 +433,20 @@ def build_single_directory( arguments, toolchain, dir, entry, skip=False, startd
         
         
     # Banner 
-    utils.output( "=====================" )
-    utils.output( "= Building Directory: " + display )
+    printer.output( "=====================" )
+    printer.output( "= Building Directory: " + display )
 
     # Debug info
-    utils.debug( "#   entry  = {}".format( entry ) )
-    utils.debug( "#   objdir = {}".format( dir ) )
-    utils.debug( "#   srcdir = {}".format( srcpath ) )
+    printer.debug( "#   entry  = {}".format( entry ) )
+    printer.debug( "#   objdir = {}".format( dir ) )
+    printer.debug( "#   srcdir = {}".format( srcpath ) )
 
     
     # verify source directory exists
     if ( not os.path.exists( srcpath ) ):
-        utils.output( "")
-        utils.output( "ERROR: Build Failed - directory does not exist: " )
-        utils.output( "" )
+        printer.output( "")
+        printer.output( "ERROR: Build Failed - directory does not exist: " )
+        printer.output( "" )
         sys.exit(1)
         
     # create object directory 
@@ -448,11 +454,20 @@ def build_single_directory( arguments, toolchain, dir, entry, skip=False, startd
     utils.push_dir( dir )
 
     # check for existing 'sources.b' file 
-    files = utils.get_files_to_build( toolchain, srcpath, NQBP_NAME_SOURCES() )
+    files = utils.get_files_to_build( printer, toolchain, srcpath, NQBP_NAME_SOURCES() )
 
     # compile files
+    p = []
     for f in files:
-        toolchain.cc( arguments, srcpath + os.sep + f )
+        hdl = Process(target=process_entry, args=(toolchain, arguments, srcpath + os.sep + f))
+        p.append( hdl )
+        hdl.start()
+        
+    # Wait for all files to be compiled and exit if there was an error
+    for f in p:
+        f.join()
+        if ( f.exitcode != 0 ):
+            exit( f.exitcode )
         
     # build archive
     toolchain.ar( arguments )
@@ -460,3 +475,8 @@ def build_single_directory( arguments, toolchain, dir, entry, skip=False, startd
 
     # return skip/stop status
     return skip, stop
+
+# Internal helper method to invoke the CC operation on my toolchain
+def process_entry( toolchain, arguments, path ):
+    toolchain.cc( arguments, path )
+        

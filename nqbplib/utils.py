@@ -16,14 +16,10 @@ from my_globals import NQBP_PRJ_DIR_MARKER1
 from my_globals import NQBP_PRJ_DIR_MARKER2
 from my_globals import NQBP_PKG_TOP
 from my_globals import NQBP_WRKPKGS_DIRNAME
-
+from my_globals import OUT
 
 # Module globals
 _dirstack = []
-
-
-# Get logger/output handle
-OUT = logging.getLogger( 'nqbp' )
 
 
 #-----------------------------------------------------------------------------
@@ -43,19 +39,19 @@ def dir_list_filter_by_ext(dir, exts):
 
 
 #-----------------------------------------------------------------------------
-def run_shell( cmd, capture_output=True ):
+def run_shell( printer, cmd, capture_output=True ):
     p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
     r = p.communicate()
 
     if ( r[0] != None ):
         line =  r[0].rstrip()
         if ( line != "" ):
-            output( line )
+            printer.output( line )
             
     if ( r[1] != None ):
         line =  r[1].rstrip()
         if ( line != "" ):
-            output( line )
+            printer.output( line )
 
     return p.returncode
 
@@ -71,41 +67,6 @@ def del_files_by_ext(dir, *exts):
     for f in files_to_delete:
         os.remove(f)
 
-def output(*args):
-    OUT.warning( *args )
-    
-def verbose(*args):
-    OUT.info( *args )
-    
-def debug(*args):
-    OUT.debug( *args )
-    
-def enable_debug():
-    OUT.setLevel( logging.DEBUG )
-    
-def enable_verbose():
-    OUT.setLevel( logging.INFO )
-    
-def enable_ouptut():
-    # Setup logger to echo output to console and log file
-    OUT.setLevel( logging.WARNING )
-    fh = logging.FileHandler( 'make.log', 'w' )
-    fh.setLevel(logging.DEBUG )
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG )
-    formatter = logging.Formatter( '%(message)s' )
-    fh.setFormatter(formatter)
-    ch.setFormatter(formatter)
-    OUT.addHandler(fh)
-    OUT.addHandler(ch)
-    
-def remove_log_file():
-    # Brute force close all logger handlers so I can delete the 'file logger'
-    for h in OUT.handlers:
-        OUT.removeHandler(h)
-        h.close()
-        
-    delete_file('make.log')
     
     
 #-----------------------------------------------------------------------------
@@ -316,14 +277,14 @@ def pop_dir():
     
     
 #-----------------------------------------------------------------------------
-def get_files_to_build( toolchain, dir, sources_b ):
+def get_files_to_build( printer, toolchain, dir, sources_b ):
     files = []
     
     # get the list of potential file to build (when no 'sources.b' is present)
     src_b = os.path.join( dir, sources_b )
     if ( not os.path.isfile( src_b) ):
         exts = ['c', 'cpp'] + toolchain.get_asm_extensions()
-        debug( "# Creating auto.sources.b for dir: {}. Extensions={}".format( dir, exts )  )
+        printer.debug( "# Creating auto.sources.b for dir: {}. Extensions={}".format( dir, exts )  )
         files = dir_list_filter_by_ext(dir, exts )
                 
     # get the list of files to build from 'sources.b'
@@ -345,8 +306,8 @@ def get_files_to_build( toolchain, dir, sources_b ):
     return files                
     
 #-----------------------------------------------------------------------------
-def list_libdirs( libs ):
-    debug( "# Expanded libdirs.b: (localFlag, srcdir)" )
+def list_libdirs( printer, libs ):
+    printer.debug( "# Expanded libdirs.b: (localFlag, srcdir)" )
     for l in libs:
         dir,flag = l
-        debug( "#   {:<5}:  {}".format( str(flag), dir)  )
+        printer.debug( "#   {:<5}:  {}".format( str(flag), dir)  )

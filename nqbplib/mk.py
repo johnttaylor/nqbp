@@ -219,7 +219,7 @@ def do_build( printer, toolchain, arguments, variant ):
             dir     = dir[len(NQBP_WRKPKGS_DIRNAME())+1:]
             entry   = 'xpkg'
             
-        build_single_directory( arguments, toolchain, dir, entry )
+        build_single_directory( printer, arguments, toolchain, dir, entry )
         
     # Trap compile just the project directory
     if ( arguments['-m'] ):

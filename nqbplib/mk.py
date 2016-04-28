@@ -45,7 +45,8 @@ usage = """
 Usage: nqbp [options] [-b variant] 
        nqbp [options] [-b variant] -d DIR
        nqbp [options] [-b variant] -f FILE
-       nqbp [options] [-b variant] -s DIR
+       nqbp [options] [-b variant] -s DIR [-e DIR]
+       nqbp [options] [-b variant] -e DIR [-s DIR]
        nqbp [options] [-b variant] -m [-d DIR | -f FILE]
 
 Arguments:
@@ -90,6 +91,8 @@ Arguments:
                    operation.
   --qry-blds       Displays the build 'variants' supported by the toolchain 
                    (no build is performed).
+  --qry-dirs       Displays the list of directories (in order, for the selected
+                   build variant) referenced in the libdirs.b file.
   -h,--help        Display help.
   --version        Display version number.
 
@@ -165,7 +168,8 @@ def do_build( printer, toolchain, arguments, variant ):
     toolchain.pre_build( variant, arguments )
 
     # Output start banner
-    start_banner(printer, toolchain)
+    if ( arguments['--qry-dirs'] == None ):
+        start_banner(printer, toolchain)
      
     # Spit out handy-dandy debug info
     printer.debug( '# NQBP version   = ' + NQBP_VERSION() )
@@ -180,6 +184,13 @@ def do_build( printer, toolchain, arguments, variant ):
     utils.create_working_libdirs( inf, arguments, libdirs, 'local', variant )  
     inf.close()
     utils.list_libdirs( printer, libdirs )
+
+    # Display my full set of directories
+    if ( arguments['--qry-dirs'] ):
+        for dir, flag in libdirs:
+            printer.output( "{:<5}  {}".format( str(flag), dir)  )
+        return
+
     
     # Set default operations
     clean_pkg = True
@@ -255,36 +266,43 @@ def do_build( printer, toolchain, arguments, variant ):
     toolchain.clean( clean_pkg, clean_ext )
     
     # Build libdirs.b
+    stopped = False
     if ( bld_libs ):
         
         # Filter directories when '-s' option is used
+        startdir = None
         if ( arguments['-s'] ):
-            skip     = True
             startdir = utils.standardize_dir_sep( arguments['-s'] )
             
             # Trap special case of using 'xpkgs' directory
             if ( startdir.startswith(NQBP_WRKPKGS_DIRNAME()) ):
                 startdir = os.sep + startdir[len(NQBP_WRKPKGS_DIRNAME())+1:]
-            
-        else:
-            skip     = False
-            startdir = ''
         
         # Filter directories when '-e' option is used
         stopdir = None
         if ( arguments['-e'] ):
             stopdir = utils.standardize_dir_sep( arguments['-e'] )
-            
+            stopped = True
+
             # Trap special case of using 'xpkgs' directory
             if ( stopdir.startswith(NQBP_WRKPKGS_DIRNAME()) ):
                 stopdir = os.sep + stopdir[len(NQBP_WRKPKGS_DIRNAME())+1:]
         
-        # Build all directories    
-        for d in libdirs:
-            skip, stop = build_single_directory( printer, arguments, toolchain, d[0], d[1], skip, startdir, stop, stopdir )
+        # Apply the start/end filters
+        build,skip = filter_dir_list( printer, libdirs, startdir, stopdir )
+
+        # Display directories being skipped
+        if ( skip != None ): 
+            for d in skip:
+                printer.output( "= Skippping directory: " + d )
+
+        # Build directories    
+        if ( build != None ):
+            for d in build:
+                build_single_directory( printer, arguments, toolchain, d[0], d[1] )
     
     # Build project dir
-    if ( bld_prj and not stop ):
+    if ( bld_prj and not stopped ):
         # Banner 
         printer.output( "=====================" )
         printer.output( "= Building Project Directory:" )
@@ -391,7 +409,52 @@ def build_single_file( printer, arguments, toolchain ):
     utils.pop_dir()
     
 #-----------------------------------------------------------------------------
-def build_single_directory( printer, arguments, toolchain, dir, entry, skip=False, startdir=None, stop=False, stopdir=None ):
+def filter_dir_list( printer, fulllist, startdir, stopdir ):
+    # Do nothing if building all libraries
+    if ( startdir == None and stopdir == None ):
+        return fulllist, None
+    
+    # Housekeeping
+    skipping  = True if startdir != None else False
+    stopped   = False
+    appending = True
+    buildlist = []
+    skiplist  = []
+    
+
+    # Filter the list...
+    for d,e in fulllist:
+        # convert dirname from the list to match the format of startdir/stopdir
+        thisdir = d
+        if ( e != 'local' and e != 'pkg' ):
+            thisdir = os.sep + d
+
+        # Match starting directory
+        if ( skipping ):
+            if ( startdir != thisdir ):
+                skiplist.append( thisdir )
+                continue;    
+            else:
+                skipping = False
+        
+        # add directory to the filtered list
+        if ( appending ):
+            buildlist.append( (d,e) )
+
+        # Handle the stop option
+        if ( stopdir != None ):
+            if ( stopped ):
+                skiplist.append( thisdir )
+                
+            if ( stopdir == thisdir ):
+                stopped   = True
+                appending = False
+
+    # return the filtered and skipped lists
+    return buildlist, skiplist
+
+#-----------------------------------------------------------------------------
+def build_single_directory( printer, arguments, toolchain, dir, entry ):
    
     srcpath = ''
     display = ''
@@ -411,27 +474,6 @@ def build_single_directory( printer, arguments, toolchain, dir, entry, skip=Fals
         srcpath = NQBP_WORK_ROOT() + os.sep + NQBP_WRKPKGS_DIRNAME() + os.sep + dir
         dir     = NQBP_WRKPKGS_DIRNAME() + os.sep + dir
 
-    # Handle the skip option
-    if ( skip ):
-        # match start directory
-        if ( startdir != display ):
-            printer.output( "= Skippping directory: " + display )
-            return True, stop
-        else:
-            skip = False
-
-    # Handle the stop option
-    if ( stopdir != None ):
-        # indicate that directories are being skipped
-        if ( stop ):
-            printer.output( "= Skippping directory: " + display )
-            return skip, stop
-            
-        # match stop directory
-        if ( stopdir == display ):
-            stop = True
-        
-        
     # Banner 
     printer.output( "=====================" )
     printer.output( "= Building Directory: " + display )
@@ -472,9 +514,6 @@ def build_single_directory( printer, arguments, toolchain, dir, entry, skip=Fals
     # build archive
     toolchain.ar( arguments )
     utils.pop_dir()
-
-    # return skip/stop status
-    return skip, stop
 
 # Internal helper method to invoke the CC operation on my toolchain
 def process_entry( toolchain, arguments, path ):

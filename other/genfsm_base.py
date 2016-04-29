@@ -103,7 +103,7 @@ def run( argv ):
     geneatedCodegenConfig( cfg, base, names )
         
     # Build Sinelabore command
-    cmd = 'java -jar -Djava.ext.dirs={} {}/codegen.jar -p CADIFRA -doxygen -o {} -l cppx -Trace {}'.format( sinpath, sinpath, fsm, fsmdiag )
+    cmd = 'java -jar -Djava.ext.dirs={} {}/codegen.jar -p CADIFRA -o {} -l cppx -Trace {}'.format( sinpath, sinpath, fsm, fsmdiag )
     cmd = utils.standardize_dir_sep( cmd )
   
     # Invoke Sinelabore command
@@ -568,8 +568,8 @@ IncludeDateFileHeaders=no
 
 #
 #Optional namespace used in the generated C#, Java and C++ file.
-Namespace=$$NAMESPACE_START$$
-NamespaceEnd=$$NAMESPACE_END$$
+Namespace=
+NamespaceEnd=
 #
 #Define a base classes for the generated machine class.
 BaseClassMachine=$$BASE$$
@@ -605,8 +605,8 @@ SeparateStateClasses=no
 
 #------------------------------------------------------------------------------
 def getHeader():
-    return  '/*-----------------------------------------------------------------------------\n* This file is part of the Colony.Core Project.  The Colony.Core Project is an\n* open source project with a BSD type of licensing agreement.  See the license\n* agreement (license.txt) in the top/ directory or on the Internet at\n* http://integerfox.com/colony.core/license.txt\n*\n* Copyright (c) 2014, 2015  John T. Taylor\n*\n* Redistributions of the source code must retain the above copyright notice.\n*----------------------------------------------------------------------------*/\n/** @file */\n\n'
+    return  '/*-----------------------------------------------------------------------------\n* Blah..\n*----------------------------------------------------------------------------*/\n/** @file */\n\n'
 
 def getHeaderCfg():
-    return r'/*-----------------------------------------------------------------------------\n* This file is part of the Colony.Core Project.  The Colony.Core Project is an\n* open source project with a BSD type of licensing agreement.  See the license\n* agreement (license.txt) in the top/ directory or on the Internet at\n* http://integerfox.com/colony.core/license.txt\n*\n* Copyright (c) 2014, 2015  John T. Taylor\n*\n* Redistributions of the source code must retain the above copyright notice.\n*----------------------------------------------------------------------------*/\n/** @file */\n\n'
+    return r'/*-----------------------------------------------------------------------------\n* Blah..\n*----------------------------------------------------------------------------*/\n/** @file */\n\n'
 

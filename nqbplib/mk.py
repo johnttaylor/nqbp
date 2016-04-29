@@ -46,7 +46,6 @@ Usage: nqbp [options] [-b variant]
        nqbp [options] [-b variant] -d DIR
        nqbp [options] [-b variant] -f FILE
        nqbp [options] [-b variant] -s DIR [-e DIR]
-       nqbp [options] [-b variant] -e DIR [-s DIR]
        nqbp [options] [-b variant] -m [-d DIR | -f FILE]
 
 Arguments:
@@ -84,6 +83,8 @@ Arguments:
   -l               Link ONLY (can be combinded with '-mpxdfse' options).
   -k               Cleans only the package's objects/files (use with '-p')
   -j               Cleans only the external objects/files (use with '-x').
+  -1               Suppresses the use of multiple processes when building.
+  -t, --turbo      Uses multiple process to build directories in parallel.
   -z, --clean-all  Cleans ALL files for ALL build configurations and then exits
   --debug          Enables debug info internally to NQBP.
   --qry            Outputs the current project directory (does nothing else)
@@ -298,8 +299,57 @@ def do_build( printer, toolchain, arguments, variant ):
 
         # Build directories    
         if ( build != None ):
-            for d in build:
-                build_single_directory( printer, arguments, toolchain, d[0], d[1] )
+            # Build one directory at time
+            if ( arguments['-1'] or not arguments['--turbo'] ):
+                for d in build:
+                    process_entry_build_directory( printer, arguments, toolchain, d[0], d[1], NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
+
+            # Build multiple directories at the same time (limited to building at most 2 directories at a time)
+            else:
+                hdl1  = None
+                hdl2  = None
+                hdl3  = None
+                max   = len(build)
+                index = 0
+                while( index < max or hdl1 != None or hdl2 != None or hdl3 != None ):
+                    # Start process #1
+                    if ( hdl1 == None and index < max ):
+                        d,e = build[index]
+                        index += 1
+                        hdl1   = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() ))
+                        hdl1.start()
+
+                    # Start process #2
+                    if ( hdl2 == None and index < max ):
+                        d,e = build[index]
+                        index += 1
+                        hdl2   = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() ))
+                        hdl2.start()
+                    
+                    # Start process #3
+                    if ( hdl3 == None and index < max ):
+                        d,e = build[index]
+                        index += 1
+                        hdl3   = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() ))
+                        hdl3.start()
+
+                    # wait for one of the processes to complete (before starting a new process)
+                    if ( hdl1 != None and not hdl1.is_alive() ):
+                        if ( hdl1.exitcode != 0 ):
+                            exit( hdl1.exitcode )
+                        hdl1 = None
+                    elif ( hdl2 != None and not hdl2.is_alive() ):
+                        if ( hdl2.exitcode != 0 ):
+                            exit( hdl2.exitcode )
+                        hdl2 = None
+                    elif ( hdl3 != None and not hdl3.is_alive() ):
+                        if ( hdl3.exitcode != 0 ):
+                            exit( hdl3.exitcode )
+                        hdl3 = None
+                    else:
+                        # sleep for 10ms before polling to see if a process has completed
+                        time.sleep( 0.010 )
+
     
     # Build project dir
     if ( bld_prj and not stopped ):
@@ -324,6 +374,10 @@ def do_build( printer, toolchain, arguments, variant ):
     end_banner(printer, toolchain)
      
            
+# Internal helper method to invoke building a single directory
+def process_entry_build_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname ):
+    build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname )
+
 #-----------------------------------------------------------------------------
 def pre_build_steps(printer, toolchain, arguments ):
 
@@ -454,25 +508,25 @@ def filter_dir_list( printer, fulllist, startdir, stopdir ):
     return buildlist, skiplist
 
 #-----------------------------------------------------------------------------
-def build_single_directory( printer, arguments, toolchain, dir, entry ):
+def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname ):
    
     srcpath = ''
     display = ''
     
     # directory is local to my package
     if ( entry == 'local' ):
-        srcpath = NQBP_PKG_ROOT() + os.sep + dir
+        srcpath = pkg_root + os.sep + dir
         display = dir
     
     elif ( entry == 'pkg' ):
-        srcpath = os.path.join( NQBP_PKG_ROOT(), dir )
+        srcpath = os.path.join( pkg_root, dir )
         display = dir
         
     # directory is an external package
     else:
         display = os.sep + dir
-        srcpath = NQBP_WORK_ROOT() + os.sep + NQBP_WRKPKGS_DIRNAME() + os.sep + dir
-        dir     = NQBP_WRKPKGS_DIRNAME() + os.sep + dir
+        srcpath = work_root + os.sep + pkgs_dirname + os.sep + dir
+        dir     = pkgs_dirname + os.sep + dir
 
     # Banner 
     printer.output( "=====================" )
@@ -498,24 +552,30 @@ def build_single_directory( printer, arguments, toolchain, dir, entry ):
     # check for existing 'sources.b' file 
     files = utils.get_files_to_build( printer, toolchain, srcpath, NQBP_NAME_SOURCES() )
 
-    # compile files
-    p = []
-    for f in files:
-        hdl = Process(target=process_entry, args=(toolchain, arguments, srcpath + os.sep + f))
-        p.append( hdl )
-        hdl.start()
-        
-    # Wait for all files to be compiled and exit if there was an error
-    for f in p:
-        f.join()
-        if ( f.exitcode != 0 ):
-            exit( f.exitcode )
+    # compile using a single process
+    if ( arguments['-1'] ):
+        for f in files:
+            process_entry_cc( toolchain, arguments, srcpath + os.sep + f )
+
+    # compile files using multiple processes (one process per file)
+    else:
+        p = []
+        for f in files:
+            hdl = Process(target=process_entry_cc, args=(toolchain, arguments, srcpath + os.sep + f))
+            p.append( hdl )
+            hdl.start()
+            
+        # Wait for all files to be compiled and exit if there was an error
+        for f in p:
+            f.join()
+            if ( f.exitcode != 0 ):
+                exit( f.exitcode )
         
     # build archive
     toolchain.ar( arguments )
     utils.pop_dir()
 
 # Internal helper method to invoke the CC operation on my toolchain
-def process_entry( toolchain, arguments, path ):
+def process_entry_cc( toolchain, arguments, path ):
     toolchain.cc( arguments, path )
         

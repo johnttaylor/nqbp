@@ -306,48 +306,36 @@ def do_build( printer, toolchain, arguments, variant ):
 
             # Build multiple directories at the same time (limited to building at most 2 directories at a time)
             else:
-                hdl1  = None
-                hdl2  = None
-                hdl3  = None
-                max   = len(build)
-                index = 0
-                while( index < max or hdl1 != None or hdl2 != None or hdl3 != None ):
-                    # Start process #1
-                    if ( hdl1 == None and index < max ):
-                        d,e = build[index]
-                        index += 1
-                        hdl1   = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() ))
-                        hdl1.start()
+                # Housekeeping
+                max     = len(build)
+                index   = 0
+                busy    = 0
+                cpus    = multiprocessing.cpu_count()
+                handles = []
+                for h in range(0,cpus):
+                    handles.append( None )
 
-                    # Start process #2
-                    if ( hdl2 == None and index < max ):
-                        d,e = build[index]
-                        index += 1
-                        hdl2   = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() ))
-                        hdl2.start()
-                    
-                    # Start process #3
-                    if ( hdl3 == None and index < max ):
-                        d,e = build[index]
-                        index += 1
-                        hdl3   = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() ))
-                        hdl3.start()
+                # Process 'n' directories at a time
+                while( index < max or busy > 0 ):
+                    # Start multiple processes
+                    for i in range(0, cpus):
+                        if ( handles[i] == None and index < max ):
+                            d,e        = build[index]
+                            index     += 1
+                            busy      += 1
+                            handles[i] = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() ))
+                            handles[i].start()
 
-                    # wait for one of the processes to complete (before starting a new process)
-                    if ( hdl1 != None and not hdl1.is_alive() ):
-                        if ( hdl1.exitcode != 0 ):
-                            exit( hdl1.exitcode )
-                        hdl1 = None
-                    elif ( hdl2 != None and not hdl2.is_alive() ):
-                        if ( hdl2.exitcode != 0 ):
-                            exit( hdl2.exitcode )
-                        hdl2 = None
-                    elif ( hdl3 != None and not hdl3.is_alive() ):
-                        if ( hdl3.exitcode != 0 ):
-                            exit( hdl3.exitcode )
-                        hdl3 = None
-                    else:
-                        # sleep for 10ms before polling to see if a process has completed
+                    # Poll for processes being done
+                    for i in range(0, cpus):
+                        if ( handles[i] != None and not handles[i].is_alive() ):
+                            if ( handles[i].exitcode != 0 ):
+                                exit( handles[i].exitcode )
+                            handles[i] = None
+                            busy      -= 1
+
+                    # sleep for 10ms before polling to see if a process has completed
+                    if ( busy >= cpus ):
                         time.sleep( 0.010 )
 
     

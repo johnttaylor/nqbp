@@ -216,22 +216,22 @@ def do_build( printer, toolchain, arguments, variant ):
         dir       = utils.standardize_dir_sep( arguments['-d'] )
         entry     = 'local'
 
-        # Trap directory is relative to the package root
-        if ( dir.startswith(os.sep) ):
-            dir   = dir[1:]
-            entry = 'pkg'
-            
         # Trap directory is relative to the workspace root
-        elif ( dir.startswith(os.sep+os.sep) ):
+        if ( dir.startswith(os.sep+os.sep) ):
             dir     = dir[2:]
             entry   = 'xpkg'
                                               
+        # Trap directory is relative to the package root
+        elif ( dir.startswith(os.sep) ):
+            dir   = dir[1:]
+            entry = 'pkg'
+            
         # special case of relative to the workspace
         elif ( dir.startswith(NQBP_WRKPKGS_DIRNAME()) ):
             dir     = dir[len(NQBP_WRKPKGS_DIRNAME())+1:]
             entry   = 'xpkg'
             
-        build_single_directory( printer, arguments, toolchain, dir, entry )
+        build_single_directory( printer, arguments, toolchain, dir, entry, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
         
     # Trap compile just the project directory
     if ( arguments['-m'] ):

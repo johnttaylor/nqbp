@@ -310,7 +310,7 @@ def do_build( printer, toolchain, arguments, variant ):
                 max     = len(build)
                 index   = 0
                 busy    = 0
-                cpus    = multiprocessing.cpu_count()
+                cpus    = multiprocessing.cpu_count() / 2 + 1 
                 handles = []
                 for h in range(0,cpus):
                     handles.append( None )

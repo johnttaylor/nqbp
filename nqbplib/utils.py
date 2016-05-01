@@ -105,10 +105,6 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
             entry     = 'xpkg'
             newparent = line.split(os.sep)[0]
      
-            # Skip external dirs when requested
-            if ( arguments['-p'] ):
-                continue
-                    
         elif ( line.startswith('.') ):
             
             # all relative includes must be libdirs.b includes
@@ -120,10 +116,6 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
             
             
         else:
-            # Skip local/package dirs when requested to only build external directories
-            if ( arguments['-x'] ):
-                continue
-                
             if ( line.startswith(os.sep) ):
                 path    = NQBP_PKG_ROOT() + os.sep
                 line    = line [1:]
@@ -131,8 +123,8 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
                
             # append 'parent' when there is one, i.e. when I have been include from xpkg libdirs.b    
             else:
-	        if ( newparent != None ):
-		    line = os.path.join(newparent,line)
+                if ( newparent != None ):
+                    line = os.path.join(newparent,line)
             
             
         # trap nested 'libdirs.b' files
@@ -148,7 +140,12 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
             continue               
 
         # output the line
-        libdirs.append( (line, entry) )
+        if ( arguments['-p'] and entry == 'xpkg' ):
+            pass
+        elif ( arguments['-x'] and entry != 'xpkg' ):
+            pass
+        else:
+            libdirs.append( (line, entry) )
         
      
 #-----------------------------------------------------------------------------

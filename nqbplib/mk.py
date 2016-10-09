@@ -208,7 +208,7 @@ def do_build( printer, toolchain, arguments, variant ):
     # Compile only a single file    
     if ( arguments['-f'] ):
         clean_pkg = clean_ext = bld_prj = do_link = bld_libs = False
-        build_single_file( arguments, toolchain )
+        build_single_file( printer, arguments, toolchain )
         
     # Compile only a single directory    
     if ( arguments['-d'] ):

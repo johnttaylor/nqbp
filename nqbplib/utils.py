@@ -68,6 +68,15 @@ def del_files_by_ext(dir, *exts):
         os.remove(f)
 
     
+#-----------------------------------------------------------------------------
+def expand_environ_var_dir_path( dir_path ):
+    envvar, subpath = dir_path[1:].split('$')
+    rootpath = os.environ.get(envvar)
+    if ( rootpath == None ):
+        output( "ERROR: Non-existent environment variable - {} - reference in line ({})".format(envvar,dir_path))
+        sys.exit(1)
+    subpath = subpath.lstrip(os.sep)
+    return os.path.join(rootpath, subpath)
     
 #-----------------------------------------------------------------------------
 def create_working_libdirs( inf, arguments, libdirs, local_external_flag, variant, parent=None ):
@@ -105,6 +114,12 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
             entry     = 'xpkg'
             newparent = line.split(os.sep)[0]
      
+        # Absolute root path via an environment variable
+        elif ( line.startswith('$')):
+            line = expand_environ_var_dir_path( line )
+            entry = 'absolute'
+
+        # relative path (i.e. an '#include' statement)
         elif ( line.startswith('.') ):
             
             # all relative includes must be libdirs.b includes
@@ -115,6 +130,7 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
             path  = NQBP_PRJ_DIR() + os.sep
             
             
+        # within my package...
         else:
             if ( line.startswith(os.sep) ):
                 path    = NQBP_PKG_ROOT() + os.sep
@@ -143,6 +159,8 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
         if ( arguments['-p'] and entry == 'xpkg' ):
             pass
         elif ( arguments['-x'] and entry != 'xpkg' ):
+            pass
+        elif ( arguments['--noabs'] and entry == 'absolute' ):
             pass
         else:
             libdirs.append( (line, entry) )

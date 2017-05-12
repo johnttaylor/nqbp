@@ -100,6 +100,7 @@ class ToolChain:
         self._clean_list     = ['o', 'lst', 'txt', 'map', 'obj', 'idb', 'pdb', 'out', 'pyc', NQBP_TEMP_EXT(), 'gcda', 'gcov', 'gcno' ]
         self._clean_pkg_dirs = [ 'src' ]
         self._clean_ext_dirs = [ NQBP_WRKPKGS_DIRNAME() ]
+        self._clean_abs_dirs = [ '__abs' ]
  
         self._ar_library_name = 'library.a'
         self._ar_options      = 'rc ' + self._ar_library_name
@@ -122,7 +123,7 @@ class ToolChain:
         #     following order (i.e. first directory searched)
         #       - Current directory
         #       - Package source directory
-        #       - Project directory
+        #       - Project directory                 
         #       - Workspace Public Include directory
         #
         self._base_release = BuildValues()
@@ -168,7 +169,7 @@ class ToolChain:
         
     
     #--------------------------------------------------------------------------
-    def clean(self, pkg, ext, silent=False):
+    def clean(self, pkg, ext, abs, silent=False):
         if ( pkg == True ):
             if ( not silent ):
                 self._printer.output( "= Cleaning Project and local Package derived objects..." )
@@ -192,6 +193,15 @@ class ToolChain:
             for d in self._clean_ext_dirs:
                 if ( os.path.exists(d) ):
                     shutil.rmtree( d, True )
+
+        if ( abs == True ):
+            if ( not silent ):
+                self._printer.output( "= Cleaning Absolute Path derived objects..." )
+            self._printer.debug( '# Cleaning directories: {}'.format( self._clean_abs_dirs ) )
+            for d in self._clean_abs_dirs:
+                if ( os.path.exists(d) ):
+                    shutil.rmtree( d, True )
+                
  
     #--------------------------------------------------------------------------
     def clean_all( self, arguments, silent=False ):            
@@ -200,7 +210,7 @@ class ToolChain:
                 self._printer.output( "=====================" )
                 self._printer.output( "= Build Variant: " + b )
             self.pre_build( b, arguments )
-            self.clean(True,True,silent)
+            self.clean(True,True,True,silent)
     
 
     #--------------------------------------------------------------------------
@@ -375,7 +385,7 @@ class ToolChain:
         
         # Set my command options to construct an 'all' libdirs list
         libdirs = []
-        myargs  = { '-p':False, '-x':False, '-b':arguments['-b'] }
+        myargs  = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False }
         utils.create_working_libdirs( inf, myargs, libdirs, local_external_setting, variant )  
 
         # construct link command
@@ -432,8 +442,11 @@ class ToolChain:
             path = '..' + os.sep
             if ( f == 'xpkg' ):
                 path += NQBP_WRKPKGS_DIRNAME() + os.sep
+            elif ( f == 'absolute' ):
+                path += "__abs" + os.sep
                 
             lname   = path + l + os.sep + self._ar_library_name    
+            lname   = lname.replace(':','',1)
             result += self._link_lib_prefix + lname + ' '
             
         return result

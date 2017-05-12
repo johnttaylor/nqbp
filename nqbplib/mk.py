@@ -77,6 +77,7 @@ Arguments:
                    after any included libdirs.b files are expanded.
   -p               Skips all external directories and/or libdirs.b files.
   -x               Skips all the package's directories and/or libdirs.b files
+  -a, --noabs      Skips (and does not clean) all absolute directories
   -m               Compiles all of the project directory.
   -g               Debug build (default is release build.
   -v               Display Compiler/linker options.
@@ -196,23 +197,24 @@ def do_build( printer, toolchain, arguments, variant ):
     # Set default operations
     clean_pkg = True
     clean_ext = True
+    clean_abs = True
     bld_prj   = True
     do_link   = True
     bld_libs  = True
     stop      = False
     
     # Skip cleaning when selective building of libdirs.b
-    if ( arguments['-p'] or arguments['-x'] or arguments['-s']  or arguments['-e']):
-        clean_pkg = clean_ext = False
+    if ( arguments['-p'] or arguments['-x'] or arguments['-s']  or arguments['-e'] or arguments['--noabs']):
+        clean_pkg = clean_ext = clean_abs = False
         
     # Compile only a single file    
     if ( arguments['-f'] ):
-        clean_pkg = clean_ext = bld_prj = do_link = bld_libs = False
+        clean_pkg = clean_ext = clean_abs = bld_prj = do_link = bld_libs = False
         build_single_file( printer, arguments, toolchain )
         
     # Compile only a single directory    
     if ( arguments['-d'] ):
-        clean_pkg = clean_ext = bld_prj = do_link = bld_libs = False
+        clean_pkg = clean_ext = clean_abs = bld_prj = do_link = bld_libs = False
         dir       = utils.standardize_dir_sep( arguments['-d'] )
         entry     = 'local'
 
@@ -230,18 +232,23 @@ def do_build( printer, toolchain, arguments, variant ):
         elif ( dir.startswith(NQBP_WRKPKGS_DIRNAME()) ):
             dir     = dir[len(NQBP_WRKPKGS_DIRNAME())+1:]
             entry   = 'xpkg'
-            
+        
+        # Trap absolute/environment variable directory
+        elif ( dir.startswith('$') ):
+            dir   = utils.expand_environ_var_dir_path( dir )
+            entry = "absolute"
+
         build_single_directory( printer, arguments, toolchain, dir, entry, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
         
     # Trap compile just the project directory
     if ( arguments['-m'] ):
-        clean_pkg = clean_ext = do_link = bld_libs = False
+        clean_pkg = clean_ext = clean_abs = do_link = bld_libs = False
         bld_prj   = True
     
     # Trap link only flag
     if ( arguments['-l'] ):
         do_link   = True
-        clean_pkg = clean_ext = bld_libs = bld_prj = False
+        clean_pkg = clean_ext = clean_abs = bld_libs = bld_prj = False
 
         # fix race condition between the -l and -m options
         if ( arguments['-m'] or arguments['-x'] or arguments['-p']  ):
@@ -252,6 +259,8 @@ def do_build( printer, toolchain, arguments, variant ):
             bld_libs = True
 
     # Trap the clean options 
+    if ( arguments['--noabs'] ):
+        clean_abs = False
     if ( arguments['-k'] ):
         clean_pkg = True
         if ( not arguments['-j'] ):
@@ -264,7 +273,7 @@ def do_build( printer, toolchain, arguments, variant ):
             
                         
     # Clean before the build starts
-    toolchain.clean( clean_pkg, clean_ext )
+    toolchain.clean( clean_pkg, clean_ext, clean_abs )
     
     # Build libdirs.b
     stopped = False
@@ -510,6 +519,13 @@ def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root,
         srcpath = os.path.join( pkg_root, dir )
         display = dir
         
+    # directory is an absolute path
+    elif ( entry == 'absolute' ):
+        srcpath = dir
+        display = dir
+        objpath = dir.replace(":",'',1)
+        dir = os.path.join( "__abs", objpath.lstrip(os.sep) )
+
     # directory is an external package
     else:
         display = os.sep + dir

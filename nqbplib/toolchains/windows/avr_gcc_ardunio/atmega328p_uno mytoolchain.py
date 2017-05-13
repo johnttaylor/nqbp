@@ -38,8 +38,8 @@ if ( ARDUINO_TOOLS == None ):
 # BEGIN EDITS/CUSTOMIZATIONS
 #---------------------------------------------------
 
-# Set the name for the final output item (must end with '.hex')
-FINAL_OUTPUT_NAME = 'blink.hex'
+# Set the name for the final output item (with NO file extension)
+FINAL_OUTPUT_NAME = 'blink'
 
 
 
@@ -49,7 +49,7 @@ FINAL_OUTPUT_NAME = 'blink.hex'
 
 # Set project specific 'base' (i.e always used) options
 base_release = BuildValues()        # Do NOT comment out this line
-base_release.cflags = '-Wall -DF_CPU=16000000L'
+base_release.cflags = ' -Wall -DF_CPU=16000000L -DARDUINO=10802'
 
 
 # Set project specific 'optimzed' options
@@ -83,7 +83,7 @@ release_opts = { 'user_base':base_release,
         
 # Add new variant option dictionary to # dictionary of 
 # build varaints
-build_variants = { 'target':release_opts,
+build_variants = { 'arduino':release_opts,
 #                  'xyz':xyz_opts,
                  }    
 
@@ -104,5 +104,5 @@ from nqbplib.toolchains.windows.avr_gcc_ardunio.atmega328p_uno import ToolChain
 
 # Function that instantiates an instance of the toolchain
 def create():
-    tc = ToolChain( FINAL_OUTPUT_NAME, prjdir, build_variants, ARDUINO_TOOLS, "target", env_error )
+    tc = ToolChain( FINAL_OUTPUT_NAME, prjdir, build_variants, ARDUINO_TOOLS, "arduino", env_error )
     return tc 

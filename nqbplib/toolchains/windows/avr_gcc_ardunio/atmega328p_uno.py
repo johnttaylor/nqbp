@@ -18,27 +18,38 @@ class ToolChain( base.ToolChain ):
         base.ToolChain.__init__( self, exename, prjdir, build_variants, default_variant )
         self._ccname   = 'AVR-GCC-ATMega328p Ardunio'
         self._cc       = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc' )
+        self._asm      = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc' )
         self._ld       = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc' )
-        self._ar       = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-ar' )
+        self._ar       = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc-ar' )
         self._objcpy   = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-objcopy' )
+
+        self._asm_ext  = 'asm'    
+        self._asm_ext2 = 'S'   
 
         # Cache potential error for environment variables not set
         self._env_error = env_error;
 
         # set the name of the linker output (not the final output)
-        self._link_output = '-o ' + exename.replace(".hex",".elf")
+        self._link_output = '-o ' + exename + '.elf'
 
         # Define paths
         core_path = os.path.join(env_tools,'hardware', 'arduino', 'avr', 'cores', 'arduino' )
         hardware_path = os.path.join(env_tools, 'hardware', 'arduino', 'avr', 'variants', 'standard' )
         self._base_release.inc = self._base_release.inc + " -I{} -I{} ".format(core_path, hardware_path) 
-        # 
-        self._base_release.cflags   = self._base_release.cflags + ' -mmcu=atmega328p -w -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -DARDUINO=10604 -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR'
 
-        self._base_release.asmflags = self._base_release.cflags
+        # 
+        common_flags                = ' -mmcu=atmega328p'
+        link_and_compile_flags      = ' -w -flto'
+        asm_and_compile_flags       = ' -MMD -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR'
+
+        self._base_release.cflags   = self._base_release.cflags + common_flags + link_and_compile_flags + asm_and_compile_flags + ' -std=gnu11 -ffunction-sections -fdata-sections -fno-fat-lto-objects'
+        self._base_release.cppflags = self._base_release.cppflags + common_flags + link_and_compile_flags + asm_and_compile_flags + ' -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics'
+        self._base_release.asmflags = common_flags + asm_and_compile_flags + ' -c -x assembler-with-cpp'
 
         self._base_release.linklibs  = ' -Wl,--start-group -lm -Wl,--end-group'
-        self._base_release.linkflags = ' -Wl,--gc-sections'
+        self._base_release.linkflags = common_flags + link_and_compile_flags + ' -Os -fuse-linker-plugin -Wl,--gc-sections'
+
+        self._ar_options      = 'rcs ' + self._ar_library_name
 
         self._debug_release.cflags   = self._debug_release.cflags + ' -g -D DEBUG'
         self._debug_release.asmflags = self._debug_release.cflags
@@ -79,15 +90,38 @@ class ToolChain( base.ToolChain ):
         vardir = '_' + self._bld
         utils.push_dir( vardir )
 
+        # Output Banner message
+        self._printer.output("= Creating EEPROM (eep) file ..." )
+
+        # construct objcopy command
+        options = '-O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load --no-change-warnings --change-section-lma .eeprom=0'
+        objcpy = '{} {} {} {}'.format(  self._objcpy,
+                                        options,
+                                        self._final_output_name + '.elf',
+                                        self._final_output_name + '.eep'
+                                     )
+                                          
+        # Generate the .HEX file
+        if ( arguments['-v'] ):
+            self._printer.output( objcpy )
+        if ( utils.run_shell(self._printer, objcpy) ):
+            self._printer.output("=")
+            self._printer.output("= Build Failed: Failed to create .EEP file from the .ELF" )
+            self._printer.output("=")
+            sys.exit(1)
+
+        # Output Banner message
+        self._printer.output("= Creating HEX file ..." )
+
         # construct objcopy command
         options = '-O ihex -R .eeprom'
         objcpy = '{} {} {} {}'.format(  self._objcpy,
                                         options,
-                                        self._final_output_name.replace(".hex",".elf"),
-                                        self._final_output_name
+                                        self._final_output_name + '.elf',
+                                        self._final_output_name + '.hex'
                                      )
                                           
-        # do the compile
+        # Generate the .HEX file
         if ( arguments['-v'] ):
             self._printer.output( objcpy )
         if ( utils.run_shell(self._printer, objcpy) ):
@@ -99,6 +133,11 @@ class ToolChain( base.ToolChain ):
         # Return to project dir
         utils.pop_dir()
         
+
+    #--------------------------------------------------------------------------
+    def get_asm_extensions(self):
+        extlist = [ self._asm_ext, self._asm_ext2 ]
+        return extlist
 
     #--------------------------------------------------------------------------
     def validate_cc( self ):

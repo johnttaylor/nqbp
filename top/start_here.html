@@ -5319,7 +5319,7 @@ html .solidborders td {  border: 1px solid black; }</pre>
 <div modified="20141230012524223" title="$:/state/toc/Contents-Overview--242358753">
 <pre>open</pre>
 </div>
-<div list="Overview" title="$:/StoryList">
+<div list="[[Using NQBP]] [[Installing NQBP]] Overview" title="$:/StoryList">
 <pre></pre>
 </div>
 <div created="20141011164829984" modified="20141020024516096" title="$:/temp/advancedsearch">
@@ -5582,7 +5582,7 @@ For those interested the back story for NQBP can be found [[here|NQBP History]].
 {{$:/core/ui/Buttons/close-all}}
 &lt;div&gt;</pre>
 </div>
-<div created="20140727053309493" creator="JohnTaylor" modified="20141104015501142" modifier="JohnTaylor" tags="Overview" title="Using NQBP">
+<div created="20140727053309493" creator="JohnTaylor" modified="20170512032547568" modifier="JohnTaylor" tags="Overview" title="Using NQBP">
 <pre>!Selecting a toolchain
 * Make a copy of 'xxxx mytoolchain.py' script for the desired toolchain directory under &lt;code&gt;nqbp/toolchains&lt;/code&gt; directory and place it in your project directory.
 ** Rename the file to &lt;code&gt;mytoolchain.py&lt;/code&gt;
@@ -5613,6 +5613,10 @@ src/foo
 # Within Outcast, build PkgB's src/bob directory (e.g.. relative-to-the- workspace root)
 //PkgB/src/bob
 
+# Build an using an absolute path that the base path is specified by an environment variable
+# where ARDUINO_TOOLS=c:\Progra~2\Ardunio
+$ARDUINO_TOOLS$/hardware/arduino/cores/arduino
+
 # Directory specific to the 'cpp1' variant
 [cpp11] src/Cpl/System/_cpp11
 
@@ -5638,14 +5642,16 @@ Note: This is just a snapshot of the current options, i.e. your option list may 
 Usage: nqbp [options] [-b variant]
        nqbp [options] [-b variant] -d DIR
        nqbp [options] [-b variant] -f FILE
-       nqbp [options] [-b variant] -s DIR
-       nqbp [options] [-b variant] -m
+       nqbp [options] [-b variant] -s DIR [-e DIR]
+       nqbp [options] [-b variant] -m [-d DIR | -f FILE]
 
 Arguments:
   -b variant       Builds the speficied configuration/varinst instead of the
                    release build. What 'variants' are available is Toolchain
-                   specific [default: release].
-  --bld-all        Builds all variants
+                   specific. The default is variant is determined by the
+                   mytoolchain.py script.
+  --bld-all        Builds all variants.  Does NOT build variants that start
+                   with a leading '_'.
   -d DIR           Compile ONLY the specified directory relative to the pkg
                    root. If 'DIR' starts with a directory seperator ('\' or
                    '/') then the directory is relative to the package root. If
@@ -5658,18 +5664,25 @@ Arguments:
                    '//') then the file is relative to the workspace root. A
                    'FILE' in the project directory can be compile by prefixing
                    'FILE' with './' or '.\' (i.e. current directory).
-  -s DIR           Skips all entries in libdirs.b BEFORE 'DIR', i.e. start
-                   with 'DIR'.  Note: 'DIR' is with respect to the
-                   expanded list of directories, i.e. after any included
-                   libdirs.b files are expanded.
+  -s DIR           Skips all entries in libdirs.b BEFORE 'DIR', i.e. start with
+                   'DIR'.  Note: 'DIR' is with respect to the expanded list of
+                   directories, i.e. after any included libdirs.b files are
+                   expanded.
+  -e DIR           Skip all entries in libdirs.b AFTER 'DIR', i.e. stop
+                   building directories once 'DIR' has been built. Note: 'DIR'
+                   is with respect to the expanded list of directories, i.e.
+                   after any included libdirs.b files are expanded.
   -p               Skips all external directories and/or libdirs.b files.
   -x               Skips all the package's directories and/or libdirs.b files
+  -a, --noabs      Skips (and does not clean) all absolute directories
   -m               Compiles all of the project directory.
   -g               Debug build (default is release build.
   -v               Display Compiler/linker options.
-  -l               Link ONLY (can be combinded with '-mpdfsa' options).
+  -l               Link ONLY (can be combinded with '-mpxdfse' options).
   -k               Cleans only the package's objects/files (use with '-p')
   -j               Cleans only the external objects/files (use with '-x').
+  -1               Suppresses the use of multiple processes when building.
+  -t, --turbo      Uses multiple process to build directories in parallel.
   -z, --clean-all  Cleans ALL files for ALL build configurations and then exits
   --debug          Enables debug info internally to NQBP.
   --qry            Outputs the current project directory (does nothing else)
@@ -5677,13 +5690,15 @@ Arguments:
                    operation.
   --qry-blds       Displays the build 'variants' supported by the toolchain
                    (no build is performed).
+  --qry-dirs       Displays the list of directories (in order, for the selected
+                   build variant) referenced in the libdirs.b file.
   -h,--help        Display help.
   --version        Display version number.
 
 Notes:
     Default operation is to do an implicit BUILD ALL and CLEAN ALL on each
     build.  The exception to this rule is when one of the following options are
-    specified: -d, -f, -s, -p, -x, -m, -l, -k, -j
+    specified: -d, -f, -s, -e, -p, -x, -m, -l, -k, -j
 ```</pre>
 </div>
 <div created="20140727043918143" creator="JohnTaylor" modified="20150809035603581" modifier="JohnTaylor" tags="Overview" title="Workspace Structure">

@@ -42,20 +42,26 @@ class ToolChain( base.ToolChain ):
         link_and_compile_flags      = ' -w -flto'
         asm_and_compile_flags       = ' -MMD -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR'
 
-        self._base_release.cflags   = self._base_release.cflags + common_flags + link_and_compile_flags + asm_and_compile_flags + ' -std=gnu11 -ffunction-sections -fdata-sections -fno-fat-lto-objects'
-        self._base_release.cppflags = self._base_release.cppflags + common_flags + link_and_compile_flags + asm_and_compile_flags + ' -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics'
-        self._base_release.asmflags = common_flags + asm_and_compile_flags + ' -c -x assembler-with-cpp'
+        self._base_release.cflags        = self._base_release.cflags + common_flags + link_and_compile_flags + asm_and_compile_flags + ' -ffunction-sections -fdata-sections'
+        self._base_release.c_only_flags  = self._base_release.c_only_flags + ' -std=gnu11 -fno-fat-lto-objects'
+        self._base_release.cppflags      = self._base_release.cppflags + ' -std=gnu++11 -fpermissive -fno-exceptions -fno-rtti -fno-threadsafe-statics'
+        self._base_release.asmflags      = common_flags + asm_and_compile_flags + ' -c -x assembler-with-cpp'
 
-        self._base_release.linklibs  = ' -Wl,--start-group -lm -Wl,--end-group'
-        self._base_release.linkflags = common_flags + link_and_compile_flags + ' -Os -fuse-linker-plugin -Wl,--gc-sections'
+        self._base_release.linklibs      = ' -Wl,--start-group -lm -Wl,--end-group'
+        self._base_release.linkflags     = common_flags + link_and_compile_flags + ' -fuse-linker-plugin -Wl,--gc-sections'
 
         self._ar_options      = 'rcs ' + self._ar_library_name
 
-        self._debug_release.cflags   = self._debug_release.cflags + ' -g -D DEBUG'
-        self._debug_release.asmflags = self._debug_release.cflags
-           
+        self._debug_release.cflags   = self._debug_release.cflags + ' -D DEBUG'
+        self._debug_release.cppflags = self._debug_release.cppflags + ' -D DEBUG'
+        self._debug_release.asmflags = self._debug_release.asmflags
+        self._debug_release.linkflags = self._debug_release.linkflags + ' -g'
+  
         self._optimized_release.cflags    = self._optimized_release.cflags + ' -Os -D RELEASE'
-        self._optimized_release.asmflags  = self._optimized_release.cflags
+        self._optimized_release.cppflags  = self._optimized_release.cppflags + ' -Os -D RELEASE'
+        self._optimized_release.asmflags  = self._optimized_release.asmflags
+        self._optimized_release.linkflags = self._optimized_release.linkflags + ' -Os'
+
 
 
         #

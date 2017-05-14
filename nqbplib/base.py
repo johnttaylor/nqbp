@@ -24,42 +24,45 @@ from my_globals import NQBP_PUBLICAPI_DIRNAME
 # Structure for holding build-variant specific options
 class BuildValues:
     def __init__(self):
-        self.inc        = ''
-        self.asminc     = ''
-        self.cflags     = ''
-        self.cppflags   = ''
-        self.asmflags   = ''
-        self.linkflags  = ''
-        self.linklibs   = ''
-        self.linkscript = ''
-        self.firstobjs  = ''
-        self.lastobjs   = ''
+        self.inc          = ''
+        self.asminc       = ''
+        self.cflags       = ''
+        self.c_only_flags = ''
+        self.cppflags     = ''
+        self.asmflags     = ''
+        self.linkflags    = ''
+        self.linklibs     = ''
+        self.linkscript   = ''
+        self.firstobjs    = ''
+        self.lastobjs     = ''
 
     def append(self,src):
-        self.inc        += ' ' + src.inc        
-        self.asminc     += ' ' + src.asminc           
-        self.cflags     += ' ' + src.cflags           
-        self.cppflags   += ' ' + src.cppflags         
-        self.asmflags   += ' ' + src.asmflags         
-        self.linkflags  += ' ' + src.linkflags        
-        self.linklibs   += ' ' + src.linklibs 
-        self.linkscript += ' ' + src.linkscript 
-        self.firstobjs  += ' ' + src.firstobjs 
-        self.lastobjs   += ' ' + src.lastobjs 
+        self.inc          += ' ' + src.inc        
+        self.asminc       += ' ' + src.asminc           
+        self.cflags       += ' ' + src.cflags           
+        self.c_only_flags += ' ' + src.cflags           
+        self.cppflags     += ' ' + src.cppflags         
+        self.asmflags     += ' ' + src.asmflags         
+        self.linkflags    += ' ' + src.linkflags        
+        self.linklibs     += ' ' + src.linklibs 
+        self.linkscript   += ' ' + src.linkscript 
+        self.firstobjs    += ' ' + src.firstobjs 
+        self.lastobjs     += ' ' + src.lastobjs 
   
         
     def copy(self):
         new = BuildValues()
-        new.inc        = self.inc        
-        new.asminc     = self.asminc           
-        new.cflags     = self.cflags           
-        new.cppflags   = self.cppflags         
-        new.asmflags   = self.asmflags         
-        new.linkflags  = self.linkflags        
-        new.linklibs   = self.linklibs 
-        new.linkscript = self.linkscript 
-        new.firstobjs  = self.firstobjs 
-        new.lastobjs   = self.lastobjs 
+        new.inc          = self.inc        
+        new.asminc       = self.asminc           
+        new.cflags       = self.cflags           
+        new.c_only_flags = self.cflags           
+        new.cppflags     = self.cppflags         
+        new.asmflags     = self.asmflags         
+        new.linkflags    = self.linkflags        
+        new.linklibs     = self.linklibs 
+        new.linkscript   = self.linkscript 
+        new.firstobjs    = self.firstobjs 
+        new.lastobjs     = self.lastobjs 
        
         return new
             
@@ -330,16 +333,18 @@ class ToolChain:
         basename = os.path.splitext( os.path.basename( fullname ) )[0]
         
         # construct compiler/assembler command
-        cc = '{} {} {}'.format( self._cc,
-                                self._all_opts.cflags,
-                                self._all_opts.inc
-                              )
+        cc_base = ' {} {} {} '.format( self._cc,
+                                     self._all_opts.cflags,
+                                     self._all_opts.inc
+                                   )
+        cc = cc_base + self._all_opts.c_only_flags
+
         if ( fullname.endswith('.c') ):
             pass
         elif ( fullname.endswith('.cpp') ):
-            cc = '{} {}'.format(cc, self._all_opts.cppflags)
+            cc = ' {} {} '.format(cc_base, self._all_opts.cppflags)
         elif ( self.is_asm_file(fullname) ):
-            cc = '{} {} {}'.format( self._asm,
+            cc = ' {} {} {} '.format( self._asm,
                                     self._all_opts.asmflags,
                                     self._all_opts.asminc
                                   )

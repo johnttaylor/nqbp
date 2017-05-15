@@ -183,7 +183,7 @@ def do_build( printer, toolchain, arguments, variant ):
     # Create/expand my working libdirs.b file
     libdirs = []
     inf = open( NQBP_NAME_LIBDIRS(), 'r' )
-    utils.create_working_libdirs( inf, arguments, libdirs, 'local', variant )  
+    utils.create_working_libdirs( printer, inf, arguments, libdirs, 'local', variant )  
     inf.close()
     utils.list_libdirs( printer, libdirs )
 
@@ -235,7 +235,7 @@ def do_build( printer, toolchain, arguments, variant ):
         
         # Trap absolute/environment variable directory
         elif ( dir.startswith('$') ):
-            dir   = utils.expand_environ_var_dir_path( dir )
+            dir   = utils.expand_environ_var_dir_path( printer, dir )
             entry = "absolute"
 
         build_single_directory( printer, arguments, toolchain, dir, entry, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
@@ -448,7 +448,7 @@ def build_single_file( printer, arguments, toolchain ):
     if ( is_project_dir ):
         dir = os.getcwd()
     else:
-        dir = utils.create_subdirectory_from_file( os.getcwd(), fname )
+        dir = utils.create_subdirectory_from_file( printer, os.getcwd(), fname )
     
     # call toolchain compile method
     utils.push_dir( dir )
@@ -550,7 +550,7 @@ def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root,
         sys.exit(1)
         
     # create object directory 
-    dir = utils.create_subdirectory( os.getcwd(), dir )
+    dir = utils.create_subdirectory( printer, os.getcwd(), dir )
     utils.push_dir( dir )
 
     # check for existing 'sources.b' file 

@@ -69,17 +69,40 @@ def del_files_by_ext(dir, *exts):
 
     
 #-----------------------------------------------------------------------------
-def expand_environ_var_dir_path( dir_path ):
-    envvar, subpath = dir_path[1:].split('$')
+def expand_environ_var_dir_path( printer, dir_path, marker='$' ):
+    envvar, subpath = dir_path[1:].split(marker, 1)
     rootpath = os.environ.get(envvar)
     if ( rootpath == None ):
-        output( "ERROR: Non-existent environment variable - {} - reference in line ({})".format(envvar,dir_path))
+        printer.output( "ERROR: Non-existent environment variable - {} - reference in line ({})".format(envvar,dir_path))
         sys.exit(1)
     subpath = subpath.lstrip(os.sep)
     return os.path.join(rootpath, subpath)
     
+
 #-----------------------------------------------------------------------------
-def create_working_libdirs( inf, arguments, libdirs, local_external_flag, variant, parent=None ):
+def replace_environ_variable( printer, line, marker='$' ):
+    # Find the next environment variable
+    start_idx = line.find(marker)
+    if ( start_idx < 0 ):
+        return line
+    end_idx = line.find(marker,start_idx+1)
+    if ( end_idx < 0 ):
+        printer.output( "ERROR: Invalid variable syntax - missing trailing {} - in line:({})".format(marker,line) )
+        sys.exit(1)
+
+    # Expand the environment variable's content
+    var   = line[start_idx+1:end_idx]
+    value = os.environ.get(var)
+    if ( value == None ):
+        printer.output( "ERROR: Non-existent environment variable - {} - reference in line ({})".format(var,line))
+        sys.exit(1)
+    line = line[:start_idx] + value + line[end_idx+1:]
+
+    # Keeping search for other environment variables....
+    return replace_environ_variable(printer,line,marker)
+
+#-----------------------------------------------------------------------------
+def create_working_libdirs( printer, inf, arguments, libdirs, local_external_flag, variant, parent=None ):
     
     # process all entries in the file        
     for line in inf:
@@ -98,7 +121,7 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
         if ( line.startswith('[') ):
             tokens = line[1:].split(']')
             if ( len(tokens) == 1 ):
-                output( "ERROR: invalid [<variant>] prefix qualifer ({})".format( line ) )
+                printer.output( "ERROR: invalid [<variant>] prefix qualifer ({})".format( line ) )
                 sys.exit(1)
             if ( not _matches_variant(tokens[0], variant) ):
                 continue
@@ -116,7 +139,7 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
      
         # Absolute root path via an environment variable
         elif ( line.startswith('$')):
-            line = expand_environ_var_dir_path( line )
+            line = expand_environ_var_dir_path( printer, line )
             entry = 'absolute'
 
         # relative path (i.e. an '#include' statement)
@@ -124,7 +147,7 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
             
             # all relative includes must be libdirs.b includes
             if ( not line.endswith( NQBP_NAME_LIBDIRS() ) ):
-                output( "ERROR: using a relative include to a non-libdirs.b file ({})".format( line ) )
+                printer.output( "ERROR: using a relative include to a non-libdirs.b file ({})".format( line ) )
                 sys.exit(1)
                 
             path  = NQBP_PRJ_DIR() + os.sep
@@ -143,15 +166,18 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
                     line = os.path.join(newparent,line)
             
             
+        # Expand any/all embedded environments (that did NOT start the directory entry)
+        line = replace_environ_variable(printer, line)
+
         # trap nested 'libdirs.b' files
         if ( line.endswith( NQBP_NAME_LIBDIRS() ) ):
             fname = path+line
             if ( not os.path.isfile(fname) ):
-                output( "ERROR: Missing/invalid nest '{}': {}".format(NQBP_NAME_LIBDIRS(),line) )
+                printer.output( "ERROR: Missing/invalid nest '{}': {}".format(NQBP_NAME_LIBDIRS(),line) )
                 sys.exit(1)
                 
             f = open( path+line, 'r' )
-            create_working_libdirs( f, arguments, libdirs, entry, variant, newparent )
+            create_working_libdirs( printer, f, arguments, libdirs, entry, variant, newparent )
             f.close()
             continue               
 
@@ -167,7 +193,7 @@ def create_working_libdirs( inf, arguments, libdirs, local_external_flag, varian
         
      
 #-----------------------------------------------------------------------------
-def create_subdirectory( pardir, new_subdir ):
+def create_subdirectory( printer, pardir, new_subdir ):
     dname  = os.path.abspath( standardize_dir_sep(pardir) + os.sep + new_subdir )
     
     try:
@@ -179,13 +205,13 @@ def create_subdirectory( pardir, new_subdir ):
             pass
             
         else:
-            output( "ERROR: Failed to create directory: {}".format( dname ) )
+            printer.output( "ERROR: Failed to create directory: {}".format( dname ) )
             sys.exit(1)
             
     return dname
     
     
-def create_subdirectory_from_file( pardir, fname ):
+def create_subdirectory_from_file( printer, pardir, fname ):
     subdir = os.path.dirname( standardize_dir_sep(fname) )
     dname  = os.path.abspath( standardize_dir_sep(pardir) + os.sep + subdir )
     
@@ -198,14 +224,14 @@ def create_subdirectory_from_file( pardir, fname ):
             pass
             
         else:
-            output( "ERROR: Failed to create directory: {}".format( dname ) )
+            printer.output( "ERROR: Failed to create directory: {}".format( dname ) )
             sys.exit(1)
             
     return dname
     
         
 #-----------------------------------------------------------------------------
-def set_pkg_and_wrkspace_roots(from_fname):
+def set_pkg_and_wrkspace_roots( from_fname):
     from_fname = os.path.abspath(from_fname)
     root = _get_marker_dir( standardize_dir_sep(from_fname), NQBP_PRJ_DIR_MARKER1() )
     if ( root != None ):

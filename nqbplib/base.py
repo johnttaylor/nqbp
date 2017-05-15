@@ -385,13 +385,13 @@ class ToolChain:
 
         # create build variant output
         vardir = '_' + self._bld
-        utils.create_subdirectory( '.', vardir )
+        utils.create_subdirectory( self._printer, '.', vardir )
         utils.push_dir( vardir )
         
         # Set my command options to construct an 'all' libdirs list
         libdirs = []
         myargs  = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False }
-        utils.create_working_libdirs( inf, myargs, libdirs, local_external_setting, variant )  
+        utils.create_working_libdirs( self._printer, inf, myargs, libdirs, local_external_setting, variant )  
 
         # construct link command
         libs = self._build_library_list( libdirs )

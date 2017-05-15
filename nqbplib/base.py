@@ -40,7 +40,7 @@ class BuildValues:
         self.inc          += ' ' + src.inc        
         self.asminc       += ' ' + src.asminc           
         self.cflags       += ' ' + src.cflags           
-        self.c_only_flags += ' ' + src.cflags           
+        self.c_only_flags += ' ' + src.c_only_flags
         self.cppflags     += ' ' + src.cppflags         
         self.asmflags     += ' ' + src.asmflags         
         self.linkflags    += ' ' + src.linkflags        
@@ -55,7 +55,7 @@ class BuildValues:
         new.inc          = self.inc        
         new.asminc       = self.asminc           
         new.cflags       = self.cflags           
-        new.c_only_flags = self.cflags           
+        new.c_only_flags = self.c_only_flags
         new.cppflags     = self.cppflags         
         new.asmflags     = self.asmflags         
         new.linkflags    = self.linkflags        

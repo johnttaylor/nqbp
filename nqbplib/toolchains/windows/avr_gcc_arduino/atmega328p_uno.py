@@ -38,7 +38,7 @@ class ToolChain( base.ToolChain ):
         self._base_release.inc = self._base_release.inc + " -I{} -I{} ".format(core_path, hardware_path) 
 
         # 
-        common_flags                = ' -mmcu=atmega328p'
+        common_flags                = ' -mmcu=atmega328p -Os'
         link_and_compile_flags      = ' -w -flto'
         asm_and_compile_flags       = ' -MMD -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR'
 
@@ -52,15 +52,11 @@ class ToolChain( base.ToolChain ):
 
         self._ar_options      = 'rcs ' + self._ar_library_name
 
-        self._debug_release.cflags   = self._debug_release.cflags + ' -D DEBUG'
-        self._debug_release.cppflags = self._debug_release.cppflags + ' -D DEBUG'
-        self._debug_release.asmflags = self._debug_release.asmflags
-        self._debug_release.linkflags = self._debug_release.linkflags + ' -g'
+        self._debug_release.cflags   = self._debug_release.cflags + ' -DCFG_DEBUG=2'
+        self._debug_release.asmflags = self._debug_release.asmflags + ' -DCFG_DEBUG=2'
   
-        self._optimized_release.cflags    = self._optimized_release.cflags + ' -Os -D RELEASE'
-        self._optimized_release.cppflags  = self._optimized_release.cppflags + ' -Os -D RELEASE'
-        self._optimized_release.asmflags  = self._optimized_release.asmflags
-        self._optimized_release.linkflags = self._optimized_release.linkflags + ' -Os'
+        self._optimized_release.cflags    = self._optimized_release.cflags + ' -DCFG_DEBUG=0'
+        self._optimized_release.asmflags  = self._optimized_release.asmflags + ' -DCFG_DEBUG=2'
 
 
 

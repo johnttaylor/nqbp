@@ -62,13 +62,13 @@ class ToolChain( base.ToolChain ):
                 ' -I' + nffs_src_path + r'\sys\flash_map\include'
 
         # 
-        common_flags                = ' -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16'
-        asm_and_compile_flags       = ' -DARDUINO_FEATHER52 -DARDUINO_ARCH_NRF52  -DNRF52 -DS132 -DNRF51_S132 -DUSE_LFXO -DCFG_DEBUG=0 -DARDUINO_BSP_VERSION=\\"' + env_bsp_ver + '\\"'
-        cpp_and_c_flags             = ' -MMD -DSOFTDEVICE_PRESENT -ffunction-sections -fdata-sections -nostdlib --param max-inline-insns-single=500'
-        self._base_release.cflags       = self._base_release.cflags + common_flags + cpp_and_c_flags + asm_and_compile_flags
-        self._base_release.c_only_flags = self._base_release.c_only_flags + ' -std=gnu11'
-        self._base_release.cppflags     = self._base_release.cppflags + ' -std=gnu++11 -fpermissive -fno-exceptions -fno-threadsafe-statics -fno-rtti --param max-inline-insns-single=500'
-        self._base_release.asmflags = common_flags + asm_and_compile_flags + ' -c -x assembler-with-cpp'
+        common_flags                = ' -Os -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16'
+        asm_and_compile_flags       = ' -DARDUINO_FEATHER52 -DARDUINO_ARCH_NRF52  -DNRF52 -DS132 -DNRF51_S132 -DUSE_LFXO'
+        cpp_and_c_flags             = ' -MMD -DNRF5 -w -ffunction-sections -fdata-sections -nostdlib --param max-inline-insns-single=500'
+        self._base_release.cflags       = self._base_release.cflags + common_flags + cpp_and_c_flags + asm_and_compile_flags + ' -g'
+        self._base_release.c_only_flags = self._base_release.c_only_flags + ' -std=gnu11 -DSOFTDEVICE_PRESENT'
+        self._base_release.cppflags     = self._base_release.cppflags + ' -std=gnu++11 -fno-threadsafe-statics -fno-rtti -fno-exceptions -DARDUINO_BSP_VERSION=\\"' + env_bsp_ver + '\\"'
+        self._base_release.asmflags     = asm_and_compile_flags + ' -c -x assembler-with-cpp'
 
         linker_search_path1          = os.path.join(nrf52_src_path, 'variants', 'feather52' )
         linker_search_path2          = os.path.join(nrf52_src_path, 'cores', 'nRF5' )
@@ -77,15 +77,11 @@ class ToolChain( base.ToolChain ):
 
         self._ar_options      = 'rcs ' + self._ar_library_name
 
-        self._debug_release.cflags    = self._debug_release.cflags + ' -g -D DEBUG'
-        self._debug_release.cppflags  = self._debug_release.cppflags + ' -g -D DEBUG'
-        self._debug_release.asmflags  = self._debug_release.asmflags
-        self._debug_release.linkflags = self._debug_release.linkflags + ' -g'
+        self._debug_release.cflags    = self._debug_release.cflags + ' -DCFG_DEBUG=2'
+        self._debug_release.asmflags  = self._debug_release.asmflags + ' -DCFG_DEBUG=2'
            
-        self._optimized_release.cflags    = self._optimized_release.cflags + ' -Os -D RELEASE'
-        self._optimized_release.cppflags  = self._optimized_release.cppflags + ' -Os -D RELEASE'
-        self._optimized_release.asmflags  = self._optimized_release.asmflags
-        self._optimized_release.linkflags = self._optimized_release.linkflags + ' -Os'
+        self._optimized_release.cflags    = self._optimized_release.cflags + ' -DCFG_DEBUG=0'
+        self._optimized_release.asmflags  = self._optimized_release.asmflags + ' -DCFG_DEBUG=0'
 
 
         #

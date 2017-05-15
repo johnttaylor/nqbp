@@ -94,6 +94,7 @@ def run( argv ):
     # build options....
     verbose = ' -v' if args['-v'] else ''
     comport = '' if not args['-p'] else ' -P '+args['-p']
+    baud    = '' if not args['-b'] else ' -b '+args['-b']
     config  = ' -C ' + dudeconfig if not args['-c'] else ' -C "'+args['-c'] + '"'
     mcu     = ' -p ' + args['-m']
     target  = '' if args['--nohex'] else '-U flash:w:{}:i'.format(hexfile)
@@ -107,7 +108,7 @@ def run( argv ):
         print cmd
     if (utils.run_shell(printer, cmd) ):
         print
-        print '** A FAILURE occurred while attempting to avrdude'
+        print '** A FAILURE occurred while attempting to run avrdude'
         print
         sys.exit(1)
 

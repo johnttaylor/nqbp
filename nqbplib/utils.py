@@ -40,7 +40,7 @@ def dir_list_filter_by_ext(dir, exts):
 
 #-----------------------------------------------------------------------------
 def run_shell( printer, cmd, capture_output=True ):
-    p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
+    p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE ) if capture_output else subprocess.Popen( cmd, shell=True ) 
     r = p.communicate()
 
     if ( r[0] != None ):

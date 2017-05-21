@@ -106,7 +106,7 @@ def run( argv ):
     cmd = avrdude + ' ' + options
     if ( args['-v'] ):
         print cmd
-    if (utils.run_shell(printer, cmd) ):
+    if (utils.run_shell(printer, cmd, False) ):
         print
         print '** A FAILURE occurred while attempting to run avrdude'
         print

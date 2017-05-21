@@ -14,7 +14,7 @@ from nqbplib import utils
 class ToolChain( base.ToolChain ):
 
     #--------------------------------------------------------------------------
-    def __init__( self, exename, prjdir, build_variants, env_tools, env_cc_ver, env_bsp_ver, env_nfr_utils, default_variant='release', env_error=None ):
+    def __init__( self, exename, prjdir, build_variants, env_tools, env_cc_ver, env_bsp_ver, env_nfr_utils, default_variant='release', env_error=None, override_freertos_config=False ):
         base.ToolChain.__init__( self, exename, prjdir, build_variants, default_variant )
         self._ccname   = 'GCC Arm-Cortex M4 (no eabi) Compiler'
         self._cc       = os.path.join( env_tools, 'tools', 'gcc-arm-none-eabi', env_cc_ver, 'bin', 'arm-none-eabi-gcc' )
@@ -46,12 +46,14 @@ class ToolChain( base.ToolChain ):
                 ' -I' + sdk_src_path + r'\drivers_nrf\delay' + \
                 ' -I' + sdk_src_path + r'\softdevice\s132\headers' + \
                 ' -I' + freertos_src_path + r'\source\include' + \
-                ' -I' + freertos_src_path + r'\config' + \
                 ' -I' + freertos_src_path + r'\portable\GCC\nrf52' + \
                 ' -I' + freertos_src_path + r'\portable\CMSIS\nrf52' + \
+                ' -I' + nrf52_src_path + \
                 ' -I' + nrf52_src_path + r'\cores\nRF5' + \
                 ' -I' + nrf52_src_path + r'\variants\feather52' + \
                 ' -I' + nrf52_src_path + r'\libraries\Bluefruit52Lib\src' + \
+                ' -I' + nrf52_src_path + r'\libraries\Wire' + \
+                ' -I' + nrf52_src_path + r'\libraries\Spi' + \
                 ' -I' + nffs_src_path + \
                 ' -I' + nffs_src_path + r'\fs\nffs\include' + \
                 ' -I' + nffs_src_path + r'\fs\fs\include' + \
@@ -60,6 +62,10 @@ class ToolChain( base.ToolChain ):
                 ' -I' + nffs_src_path + r'\kernel\os\include\os\arch\cortex_m4' + \
                 ' -I' + nffs_src_path + r'\hw\hal\include' + \
                 ' -I' + nffs_src_path + r'\sys\flash_map\include'
+       
+        if ( not override_freertos_config ):
+            self._base_release.inc = self._base_release.inc + ' -I' + freertos_src_path + r'\config'
+
 
         # 
         common_flags                = ' -Os -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16'

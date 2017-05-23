@@ -102,7 +102,13 @@ Notes:
     Default operation is to do an implicit BUILD ALL and CLEAN ALL on each 
     build.  The exception to this rule is when one of the following options are  
     specified: -d, -f, -s, -e, -p, -x, -m, -l, -k, -j   
-         
+  
+    By default, NQBP will attempt to build all files in a single directory in
+    parallel. However, not all compilers deal well with parallel building (i.e
+    the crash). The '-1' option will suppress all parallel building.  In addition 
+    the environment variable NQBP_CMD_OPTIONS (when set to '-1') can be used to
+    apply the '-1' option to every build.
+       
 Examples:
 
 """
@@ -114,8 +120,14 @@ def build( argv, toolchain ):
     # ensure that I am executing in the project directory
     os.chdir( NQBP_PRJ_DIR() )
 
+    # Append options from optional environment variable
+    rawinput = sys.argv[1:]
+    NQBP_CMD_OPTIONS = os.environ.get('NQBP_CMD_OPTIONS')
+    if ( NQBP_CMD_OPTIONS != None ):
+        rawinput.extend( NQBP_CMD_OPTIONS.split(' '))
+
     # Process command line args...
-    arguments = docopt(usage, version=NQBP_VERSION() )
+    arguments = docopt(usage, argv=rawinput, version=NQBP_VERSION() )
     
     # Create printer (and tell the toolchain about it)
     logfile = os.path.join( os.getcwd(), 'make.log' )

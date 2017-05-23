@@ -318,6 +318,7 @@ class ToolChain:
     #--------------------------------------------------------------------------
     def validate_cc( self ):
         cc = self._cc + ' ' + self._validate_cc_options
+        self._printer.debug( '# Validating the Compiler using:: {}'.format( cc ) )
         p  = subprocess.Popen( cc, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
         r  = p.communicate()
         if ( p.returncode ):

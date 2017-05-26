@@ -245,9 +245,16 @@ def do_build( printer, toolchain, arguments, variant ):
             dir     = dir[len(NQBP_WRKPKGS_DIRNAME())+1:]
             entry   = 'xpkg'
         
+       # special case of absolute directory that was already built, e.g. nqbp -d __abs\c\my\absolute\path
+        elif ( dir.startswith("__abs") ):
+            entry   = 'absolute'
+            dir     = dir[len("__abs")+1:]
+            if ( dir[1] == os.sep ):
+                dir = dir[0:1] + ':' + dir[1:]
+
         # Trap absolute/environment variable directory
         elif ( dir.startswith('$') ):
-            dir   = utils.expand_environ_var_dir_path( printer, dir )
+            dir   = utils.replace_environ_variable( printer, dir )
             entry = "absolute"
 
         build_single_directory( printer, arguments, toolchain, dir, entry, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
@@ -300,6 +307,18 @@ def do_build( printer, toolchain, arguments, variant ):
             if ( startdir.startswith(NQBP_WRKPKGS_DIRNAME()) ):
                 startdir = os.sep + startdir[len(NQBP_WRKPKGS_DIRNAME())+1:]
         
+           # special case of absolute directory that was already built, e.g. nqbp -s __abs\c\my\absolute\path
+            elif ( startdir.startswith("__abs") ):
+                startdir = startdir[len("__abs")+1:]
+                if ( startdir[1] == os.sep ):
+                    startdir = startdir[0:1] + ':' + startdir[1:]
+
+            # expand any environment variables
+            startdir = utils.replace_environ_variable(printer, startdir)
+
+            # Print out debug info...
+            printer.debug( '# startdir   = ' + startdir )
+
         # Filter directories when '-e' option is used
         stopdir = None
         if ( arguments['-e'] ):
@@ -309,7 +328,19 @@ def do_build( printer, toolchain, arguments, variant ):
             # Trap special case of using 'xpkgs' directory
             if ( stopdir.startswith(NQBP_WRKPKGS_DIRNAME()) ):
                 stopdir = os.sep + stopdir[len(NQBP_WRKPKGS_DIRNAME())+1:]
-        
+            
+            # special case of absolute directory that was already built, e.g. nqbp -e __abs\c\my\absolute\path
+            elif ( stopdir.startswith("__abs") ):
+                stopdir = stopdir[len("__abs")+1:]
+                if ( stopdir[1] == os.sep ):
+                    stopdir = stopdir[0:1] + ':' + stopdir[1:]     
+   
+            # expand any environment variables
+            stopdir = utils.replace_environ_variable(printer, stopdir)
+
+            # Print out debug info...
+            printer.debug( '# stopdir    = ' + stopdir )
+
         # Apply the start/end filters
         build,skip = filter_dir_list( printer, libdirs, startdir, stopdir )
 
@@ -489,7 +520,7 @@ def filter_dir_list( printer, fulllist, startdir, stopdir ):
     for d,e in fulllist:
         # convert dirname from the list to match the format of startdir/stopdir
         thisdir = d
-        if ( e != 'local' and e != 'pkg' ):
+        if ( e != 'local' and e != 'pkg' and e!= 'absolute'):
             thisdir = os.sep + d
 
         # Match starting directory

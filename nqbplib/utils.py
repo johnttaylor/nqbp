@@ -139,7 +139,7 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
      
         # Absolute root path via an environment variable
         elif ( line.startswith('$')):
-            line = expand_environ_var_dir_path( printer, line )
+            line = replace_environ_variable( printer, line )
             entry = 'absolute'
 
         # relative path (i.e. an '#include' statement)
@@ -166,7 +166,7 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
                     line = os.path.join(newparent,line)
             
             
-        # Expand any/all embedded environments (that did NOT start the directory entry)
+        # Expand any/all embedded environments variables (that did NOT start the directory entry)
         line = replace_environ_variable(printer, line)
 
         # trap nested 'libdirs.b' files

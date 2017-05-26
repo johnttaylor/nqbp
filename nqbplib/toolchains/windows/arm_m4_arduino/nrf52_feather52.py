@@ -30,6 +30,8 @@ class ToolChain( base.ToolChain ):
         # Cache potential error for environment variables not set
         self._env_error = env_error;
 
+        self._clean_list.extend( ('d') )
+
         # set the name of the linker output (not the final output)
         self._link_output = '-o ' + exename + '.elf'
 

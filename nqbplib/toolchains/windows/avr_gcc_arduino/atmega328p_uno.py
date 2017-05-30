@@ -39,7 +39,7 @@ class ToolChain( base.ToolChain ):
 
         # 
         common_flags                = ' -mmcu=atmega328p -Os'
-        link_and_compile_flags      = ' -w -flto'
+        link_and_compile_flags      = ' -flto'
         asm_and_compile_flags       = ' -MMD -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR'
 
         self._base_release.cflags        = self._base_release.cflags + common_flags + link_and_compile_flags + asm_and_compile_flags + ' -ffunction-sections -fdata-sections'

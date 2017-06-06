@@ -27,4 +27,4 @@ default_root_path   = '.'
 
 # Find the Package & Workspace root
 from other import f4_base
-f4_base.run( sys.argv, default_local_path, default_global_path )
+f4_base.run( sys.argv, default_local_path, default_global_path, default_root_path )

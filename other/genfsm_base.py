@@ -103,7 +103,7 @@ def run( argv ):
     geneatedCodegenConfig( cfg, base, names )
         
     # Build Sinelabore command
-    cmd = 'java -jar -Djava.ext.dirs={} {}/codegen.jar -p CADIFRA -o {} -l cppx -Trace {}'.format( sinpath, sinpath, fsm, fsmdiag )
+    cmd = 'java -jar -Djava.ext.dirs={} {}/codegen.jar -p CADIFRA -doxygen -o {} -l cppx -Trace {}'.format( sinpath, sinpath, fsm, fsmdiag )
     cmd = utils.standardize_dir_sep( cmd )
   
     # Invoke Sinelabore command
@@ -116,7 +116,7 @@ def run( argv ):
     # Clean-up config file (don't want it being checked into version control)
     os.remove( cfg )
     
-    # Mangle the event names so that I can many FSMs in the same namespace with the same event names
+    # Mangle the event names so that I can have many FSMs in the same namespace with the same event names
     eventList = get_events_names( oldevt )
     mangle_event_names( oldevt, eventList, fsm, ' ' )
     mangle_event_names( oldfsmcpp, eventList, fsm, '"', '0', '=' )
@@ -220,6 +220,11 @@ def fix_indexes( line, prefix ):
     offsets    = line.strip().split(",")
     idx        = 0
     newoffsets = []
+    
+    # Strip off potential trailing ',' (e.g. happens when there are no 'true' events)
+    if ( offsets[len(offsets)-1] == '' ):
+        del offsets[len(offsets)-1]
+
     for i in offsets:
         n      = int(i)
         newidx = n + idx * k
@@ -568,8 +573,8 @@ IncludeDateFileHeaders=no
 
 #
 #Optional namespace used in the generated C#, Java and C++ file.
-Namespace=
-NamespaceEnd=
+Namespace=$$NAMESPACE_START$$
+NamespaceEnd=$$NAMESPACE_END$$
 #
 #Define a base classes for the generated machine class.
 BaseClassMachine=$$BASE$$

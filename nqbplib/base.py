@@ -353,11 +353,11 @@ class ToolChain:
             self._printer.output( "ERROR: No rule to compile the file: {}".format( os.path.basename(fullname) ) )
             sys.exit(1)
 
-        # Do any subsitition of the 'ME_xxx' values
+        # Do any substitution of the 'ME_xxx' values
         cc = cc.replace( 'ME_CC_BASE_FILENAME', basename )
         
 
-        # ensure correct directory seperator                                
+        # ensure correct directory separator                                
         full_fname = utils.standardize_dir_sep( fullname )
 
         cc += ' ' + full_fname

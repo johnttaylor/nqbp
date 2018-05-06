@@ -266,7 +266,7 @@ def _get_marker_dir( from_fname, marker ):
     except:
         result = None
     
-    if ( result != None ):
+    if ( result == None ):
         result = _test_for_top( result, marker )    
     return result
     

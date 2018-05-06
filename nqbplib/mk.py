@@ -85,6 +85,11 @@ Arguments:
   -k               Cleans only the package's objects/files (use with '-p')
   -j               Cleans only the external objects/files (use with '-x').
   -1               Suppresses the use of multiple processes when building.
+  --bldnum M       Passes 'M' as build number information for the build. 
+                   [Default: 0].          
+  --def1 SYM1      Defines (as a compiler option) the preprocessor 'SYM1'.
+  --def2 SYM2      Defines (as a compiler option) the preprocessor 'SYM2'.
+  --def3 SYM3      Defines (as a compiler option) the preprocessor 'SYM3'.
   -t, --turbo      Uses multiple process to build directories in parallel.
   -z, --clean-all  Cleans ALL files for ALL build configurations and then exits
   --debug          Enables debug info internally to NQBP.
@@ -182,7 +187,7 @@ def do_build( printer, toolchain, arguments, variant ):
     toolchain.pre_build( variant, arguments )
 
     # Output start banner
-    if ( arguments['--qry-dirs'] == None ):
+    if ( arguments['--qry-dirs'] == False ):
         start_banner(printer, toolchain)
      
     # Spit out handy-dandy debug info
@@ -439,6 +444,7 @@ def start_banner(printer, toolchain):
     printer.output('')
     printer.output( '=' * 80 );
     printer.output( '= START of build for:  {}'.format( toolchain.get_final_output_name()) )
+    printer.output( '= Project Directory:   {}'.format( NQBP_PRJ_DIR() ))
     printer.output( '= Toolchain:           {}'.format( toolchain.get_ccname()) )
     printer.output( '= Build Configuration: {}'.format( toolchain.get_build_variant()) )
     printer.output( '= Begin (UTC):         {}'.format( time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())) )
@@ -458,6 +464,7 @@ def end_banner(printer, toolchain):
     # 
     printer.output( '=' * 80 );
     printer.output( '= END of build for:    {}'.format( toolchain.get_final_output_name()) )
+    printer.output( '= Project Directory:   {}'.format( NQBP_PRJ_DIR() ))
     printer.output( '= Toolchain:           {}'.format( toolchain.get_ccname()) )
     printer.output( '= Build Configuration: {}'.format( toolchain.get_build_variant()) )
     printer.output( '= Elapsed Time (hh mm:ss): {:02d} {:02d}:{:02d}'.format(hhh, mm, ss) )

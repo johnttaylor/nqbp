@@ -17,6 +17,12 @@ class ToolChain( base.ToolChain ):
         base.ToolChain.__init__( self, exename, prjdir, build_variants, default_variant )
         self._ccname = 'Mingw_W64'
         
+        # more stuff to clean
+        self._clean_list.extend( ['xml'] )
+
+        # Force ANSI standard printfs/scanf
+        self._base_release.cflags = self._base_release.cflags + '-D__USE_MINGW_ANSI_STDIO=1'
+
         # Turn off ALL optimization on the debug build
         self._debug_release.cflags   = self._debug_release.cflags + ' -O0'
         

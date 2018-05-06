@@ -34,9 +34,11 @@ class ToolChain( base.ToolChain ):
         
         self._validate_cc_options = ''
         
-        self._cflag_symdef    = '/D '
-        self._asmflag_symdef  = '/D '
- 
+        self._cflag_symdef               = '/D '
+        self._asmflag_symdef             = '/D '
+        self._cflag_symvalue_delimiter   = '"'
+        self._asmflag_symvalue_delimiter = '"'
+
         self._ar_library_name = 'library.lib'
         self._ar_options      = '/NOLOGO /OUT:' + self._ar_library_name
         

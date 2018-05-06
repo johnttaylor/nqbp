@@ -78,10 +78,12 @@ class ToolChain:
         NQBP_PRJ_DIR( prjdir )
         
         # Private members
-        self._bld_variants    = build_variants
-        self._build_time_utc  = int(time.time())
-        self._cflag_symdef    = '-D'
-        self._asmflag_symdef  = '-D'
+        self._bld_variants               = build_variants
+        self._build_time_utc             = int(time.time())
+        self._cflag_symdef               = '-D'
+        self._asmflag_symdef             = '-D'
+        self._cflag_symvalue_delimiter   = ''
+        self._asmflag_symvalue_delimiter = ''
         self._printer         = None
         
         # Tools
@@ -100,7 +102,7 @@ class ToolChain:
         
         self._validate_cc_options = '-v'
         
-        self._clean_list     = ['o', 'lst', 'txt', 'map', 'obj', 'idb', 'pdb', 'out', 'pyc', NQBP_TEMP_EXT(), 'gcda', 'gcov', 'gcno' ]
+        self._clean_list     = ['o', 'lst', 'txt', 'map', 'obj', 'idb', 'pdb', 'out', 'pyc', NQBP_TEMP_EXT(), 'gcda', 'gcov', 'gcno', 'tmp' ]
         self._clean_pkg_dirs = [ 'src' ]
         self._clean_ext_dirs = [ NQBP_WRKPKGS_DIRNAME() ]
         self._clean_abs_dirs = [ '__abs' ]
@@ -142,7 +144,7 @@ class ToolChain:
         
         # Debug options, flags, etc.
         self._debug_release = BuildValues()
-        self._debug_release.cflags = '-g'
+        self._debug_release.cflags = '-g -DDEBUG_BUILD'
         
 
         # Update dictionary of build variants
@@ -264,12 +266,25 @@ class ToolChain:
         if ( arguments['--debug'] ):
             self._dump_variants( self._bld_variants )
                       
+        c_self_defines   = ""
+        asm_self_defines = ""
+        if ( arguments['--def1'] != None ):
+            c_self_defines   += self._format_custom_c_define( arguments['--def1'] )
+            asm_self_defines += self._format_custom_asm_define( arguments['--def1'] )
+        if ( arguments['--def2'] != None ):
+            c_self_defines   += self._format_custom_c_define( arguments['--def2'] )
+            asm_self_defines += self._format_custom_asm_define( arguments['--def2'] )
+        if ( arguments['--def3'] != None ):
+            c_self_defines   += self._format_custom_c_define( arguments['--def3'] )
+            asm_self_defines += self._format_custom_asm_define( arguments['--def3'] )
+
+
         # Construct build options
         null           = BuildValues()
         bld            = self._bld_variants[self._bld] 
         base           = bld.get('base', self._base_release ).copy() # default to the release 'base' if not defined
-        base.cflags   += " {}BUILD_VARIANT_{} ".format(self._cflag_symdef,  self._bld.upper());
-        base.asmflags += " {}BUILD_VARIANT_{} ".format(self._asmflag_symdef,self._bld.upper());
+        base.cflags   += " {}BUILD_VARIANT_{} {}{}BUILD_NUMBER={}{} {}".format(self._cflag_symdef,  self._bld.upper(), self._cflag_symdef,   self._cflag_symvalue_delimiter,   arguments['--bldnum'],  self._cflag_symvalue_delimiter, c_self_defines );
+        base.asmflags += " {}BUILD_VARIANT_{} {}{}BUILD_NUMBER={}{} {}".format(self._asmflag_symdef,self._bld.upper(), self._asmflag_symdef, self._asmflag_symvalue_delimiter, arguments['--bldnum'],  self._asmflag_symvalue_delimiter, asm_self_defines );
 #        self._all_opts = base
 #        self._all_opts.append( bld.get('user_base', null ) )
         self._all_opts = bld.get('user_base', null )
@@ -429,6 +444,14 @@ class ToolChain:
     # Private Methods
     #==========================================================================
     
+    #--------------------------------------------------------------------------
+    def _format_custom_c_define( self, sym ):
+        return self._cflag_symdef   + self._cflag_symvalue_delimiter   + sym + self._cflag_symvalue_delimiter + ' '
+
+    def _format_custom_asm_define( self, sym ):
+        return self._asmflag_symdef + self._asmflag_symvalue_delimiter + sym + self._asmflag_symvalue_delimiter + ' '
+    
+
     #--------------------------------------------------------------------------
     def _build_prjobjs_list( self ):
         list = utils.dir_list_filter_by_ext( '..' + os.sep, [self._obj_ext] )

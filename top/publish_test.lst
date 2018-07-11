@@ -1,3 +1,2 @@
 # Build my test projects
-build -v --config tests/mingw.bat    mingw     --bld-all
 build -v --config tests/mingw-64.bat mingw_w64 --bld-all

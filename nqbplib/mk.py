@@ -134,6 +134,10 @@ def build( argv, toolchain ):
     # Process command line args...
     arguments = docopt(usage, argv=rawinput, version=NQBP_VERSION() )
     
+    # Allow the '--turbo' option to override the '-1' option
+    if ( arguments['--turbo'] ):
+        arguments['-1'] = False
+
     # Create printer (and tell the toolchain about it)
     logfile = os.path.join( os.getcwd(), 'make.log' )
     printer = Printer( multiprocessing.Lock(), logfile, start_new_file=True );

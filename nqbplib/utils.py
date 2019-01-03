@@ -38,6 +38,26 @@ def dir_list_filter_by_ext(dir, exts):
     return results
 
 
+def source_list_to_object_list( root_dir, src_dir, exts, obj_extension, new_root ):
+    """ Converts a source directory into a list of object files AND replaces
+        the source's 'root_dir' in the path with 'new_root'.  The list is returned
+        as single string.
+
+        NOTE: This function is workaround because of how the Windows CMD shell
+              does NOT expand wildcards (i.e. can't pass *.obj to the mingw
+              gcc compiler and have if work as expected)
+    """
+
+    files = dir_list_filter_by_ext( os.path.join(root_dir,src_dir), exts )
+
+    objs  = '';
+    for f in files:
+        basename = os.path.splitext(f)[0]
+        basename = os.path.join(new_root, src_dir, basename)
+        objs = objs + ' ' + basename + '.' + obj_extension
+
+    return objs
+
 #-----------------------------------------------------------------------------
 def run_shell( printer, cmd, capture_output=True ):
     p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE ) if capture_output else subprocess.Popen( cmd, shell=True ) 

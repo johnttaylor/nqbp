@@ -189,6 +189,23 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
         # Expand any/all embedded environments variables (that did NOT start the directory entry)
         line = replace_environ_variable(printer, line)
 
+        # Split off include/exclude source files list
+        srctype = None
+        srclist = None
+        orgline = line
+        tokens  = line.split(' ', 1);
+        if ( len(tokens) == 2 ):
+            line    = tokens[0].strip()
+            srclist = tokens[1].strip()
+            tokens  = srclist.split( ' ' )
+
+            if ( len(tokens) == 1 or (tokens[0] != '<' and tokens[0] != '>') ):
+                printer.output( "ERROR: Invalid include/exclude syntax specified in libdirs.b. line='{}'".format(orgline) )
+                sys.exit(1)
+
+            srctype = tokens[0];
+            srclist = tokens[1:]
+
         # trap nested 'libdirs.b' files
         if ( line.endswith( NQBP_NAME_LIBDIRS() ) ):
             fname = path+line
@@ -209,7 +226,7 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
         elif ( arguments['--noabs'] and entry == 'absolute' ):
             pass
         else:
-            libdirs.append( (line, entry) )
+            libdirs.append( ((line, srctype, srclist), entry) )
         
      
 #-----------------------------------------------------------------------------
@@ -364,11 +381,36 @@ def get_files_to_build( printer, toolchain, dir, sources_b ):
         inf.close()
              
     # return the file list
+    printer.debug( "# Default file list to build for dir: {}. {}".format( dir, files )  )
     return files                
     
+
+#
+def filter_files( printer, dir, file_list, filter_type, filter_files ):
+    files = file_list
+    printer.debug( "# For dir: {}. Filter type: {}, list: {}".format( dir, filter_type, filter_files )  )
+
+    # Include only filter
+    if ( filter_type == '<'):
+        files = filter_files
+    
+    # Exclude filter
+    elif ( filter_type == '>'):
+        files = [n for n in file_list if n not in filter_files]
+
+
+    printer.debug( "# Filtered file list to build for dir: {}. {}".format( dir, files )  )
+    return files;
+
+
 #-----------------------------------------------------------------------------
 def list_libdirs( printer, libs ):
-    printer.debug( "# Expanded libdirs.b: (localFlag, srcdir)" )
+    printer.debug( "# Expanded libdirs.b: (localFlag, srcdir [srctype, srclist])" )
     for l in libs:
         dir,flag = l
-        printer.debug( "#   {:<5}:  {}".format( str(flag), dir)  )
+        d,s,sl = dir
+        if ( s == None or sl == None ):
+            printer.debug( "#   {:<5}:  {}".format( str(flag), d)  )
+        else:
+            printer.debug( "#   {:<5}:  {} -- {} {}".format( str(flag), d, s, sl)  )
+

@@ -100,6 +100,8 @@ Arguments:
                    (no build is performed).
   --qry-dirs       Displays the list of directories (in order, for the selected
                    build variant) referenced in the libdirs.b file.
+  --qry-dirs2      Same as --qry-dirs with the addition of the any source file
+                   include/exclude info
   -h,--help        Display help.
   --version        Display version number.
 
@@ -211,9 +213,19 @@ def do_build( printer, toolchain, arguments, variant ):
     # Display my full set of directories
     if ( arguments['--qry-dirs'] ):
         for dir, flag in libdirs:
-            printer.output( "{:<5}  {}".format( str(flag), dir)  )
+            d,s,sl = dir
+            printer.output( "{:<5}  {}".format( str(flag), d)  )
         return
 
+    # Display my full set of directories with Source include/exclude info
+    if ( arguments['--qry-dirs2'] ):
+        for dir, flag in libdirs:
+            d,s,sl = dir
+            if ( s == None or sl == None ):
+                printer.output( "{:<5}  {}".format( str(flag), d)  )
+            else:
+                printer.output( "{:<5}  {}  {}{}{} {} ".format( str(flag), d, s,s,s, sl)  )
+        return
     
     # Set default operations
     clean_pkg = True
@@ -266,7 +278,8 @@ def do_build( printer, toolchain, arguments, variant ):
             dir   = utils.replace_environ_variable( printer, dir )
             entry = "absolute"
 
-        build_single_directory( printer, arguments, toolchain, dir, entry, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
+        dirtuple = (dir, None, None)
+        build_single_directory( printer, arguments, toolchain, dirtuple, entry, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
         
     # Trap compile just the project directory
     if ( arguments['-m'] ):
@@ -530,9 +543,9 @@ def filter_dir_list( printer, fulllist, startdir, stopdir ):
     # Filter the list...
     for d,e in fulllist:
         # convert dirname from the list to match the format of startdir/stopdir
-        thisdir = d
+        thisdir = d[0]
         if ( e != 'local' and e != 'pkg' and e!= 'absolute'):
-            thisdir = os.sep + d
+            thisdir = os.sep + thisdir
 
         # Match starting directory
         if ( skipping ):
@@ -566,25 +579,25 @@ def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root,
     
     # directory is local to my package
     if ( entry == 'local' ):
-        srcpath = pkg_root + os.sep + dir
-        display = dir
+        srcpath = pkg_root + os.sep + dir[0]
+        display = dir[0]
     
     elif ( entry == 'pkg' ):
-        srcpath = os.path.join( pkg_root, dir )
-        display = dir
+        srcpath = os.path.join( pkg_root, dir[0] )
+        display = dir[0]
         
     # directory is an absolute path
     elif ( entry == 'absolute' ):
-        srcpath = dir
-        display = dir
-        objpath = dir.replace(":",'',1)
-        dir = os.path.join( "__abs", objpath.lstrip(os.sep) )
+        srcpath = dir[0]
+        display = dir[0]
+        objpath = dir[0].replace(":",'',1)
+        dir[0]  = os.path.join( "__abs", objpath.lstrip(os.sep) )
 
     # directory is an external package
     else:
-        display = os.sep + dir
-        srcpath = work_root + os.sep + pkgs_dirname + os.sep + dir
-        dir     = pkgs_dirname + os.sep + dir
+        display = os.sep + dir[0]
+        srcpath = work_root + os.sep + pkgs_dirname + os.sep + dir[0]
+        dir[0]  = pkgs_dirname + os.sep + dir[0]
 
     # Banner 
     printer.output( "=====================" )
@@ -592,7 +605,7 @@ def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root,
 
     # Debug info
     printer.debug( "#   entry  = {}".format( entry ) )
-    printer.debug( "#   objdir = {}".format( dir ) )
+    printer.debug( "#   objdir = {}".format( dir[0] ) )
     printer.debug( "#   srcdir = {}".format( srcpath ) )
 
     
@@ -604,11 +617,15 @@ def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root,
         sys.exit(1)
         
     # create object directory 
-    dir = utils.create_subdirectory( printer, os.getcwd(), dir )
-    utils.push_dir( dir )
+    d = utils.create_subdirectory( printer, os.getcwd(), dir[0] )
+    utils.push_dir( d )
 
     # check for existing 'sources.b' file 
     files = utils.get_files_to_build( printer, toolchain, srcpath, NQBP_NAME_SOURCES() )
+
+    # Filter the source file by the include/exclude list (if there is one)
+    if ( dir[1] != None and dir[2] != None ):
+        files = utils.filter_files( printer, srcpath, files, dir[1], dir[2] )
 
     # compile using a single process
     if ( arguments['-1'] ):

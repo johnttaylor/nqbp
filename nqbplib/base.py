@@ -467,14 +467,15 @@ class ToolChain:
         result = ''
         for pair in libs:
             l,f  = pair
-            
+            dirname = l[0]
+
             path = '..' + os.sep
             if ( f == 'xpkg' ):
                 path += NQBP_WRKPKGS_DIRNAME() + os.sep
             elif ( f == 'absolute' ):
                 path += "__abs" + os.sep
                 
-            lname   = path + l + os.sep + self._ar_library_name    
+            lname   = path + dirname + os.sep + self._ar_library_name    
             lname   = lname.replace(':','',1)
             result += self._link_lib_prefix + lname + ' '
             

@@ -439,8 +439,6 @@ class ToolChain:
         self._all_opts.firstobjs = utils.replace_build_dir_symbols(self,  self._all_opts.firstobjs, libdirs, ".." )
         self._all_opts.lastobjs  = utils.replace_build_dir_symbols(self,  self._all_opts.lastobjs, libdirs, ".." )
         
-        print "in prelink: firstobjs=", self._all_opts.firstobjs, "lastobjs=", self._all_opts.lastobjs
-
         # Return the 'all' libdirs list
         return libdirs
 

@@ -5337,7 +5337,7 @@ html .solidborders td {  border: 1px solid black; }</pre>
 <div modified="20190112022928289" title="$:/state/toc/Overview-Using NQBP--242358753">
 <pre>open</pre>
 </div>
-<div list="Overview" title="$:/StoryList">
+<div list="[[Using NQBP]] Linking Overview" title="$:/StoryList">
 <pre></pre>
 </div>
 <div created="20141011164829984" modified="20141020024516096" title="$:/temp/advancedsearch">
@@ -5551,23 +5551,23 @@ __''//Table-of-Contents//''__
 
 &lt;div align=&quot;center&quot;&gt;&lt;iframe src=&quot;./license.txt&quot; frameborder=&quot;0&quot; width=&quot;100%&quot; height=&quot;800&quot;&gt;&lt;/iframe&gt;&lt;/div&gt;</pre>
 </div>
-<div created="20190112023423748" modified="20190112030622252" tags="[[Using NQBP]] Usage" title="Linking">
-<pre>!! The build sequnce
-# NQBP compiles out of source directories listed in the libdirs.b file into individual library/archive.
-# NQBP then compiles the source code (if any) in the project directory
+<div created="20190112023423748" modified="20190112031308672" tags="[[Using NQBP]] Usage" title="Linking">
+<pre>!! The build sequence
+# NQBP compiles out of source directories listed in the libdirs.b file into individual libraries/archives.
+# NQBP then compiles the source code (if any) in the project directory.
 # The link phase consists of linking the objects files from the project directory (step 2) against all of the libraries created in step 1.
-#* Because NQBP links against libraries, only code that is explicitly referenced is linked into the final executable image, i.e. unused/un-referenced object modules are not included the final image.  This behavior is typically what is desired.  However, there are scenario where this is caused desired/needed modules to be omitted from the final image.  For example, if a C file contains only the processor's vector table (e.g. an array of function pointers at a hardware coded address) - there is no &quot;calling&quot; code that references this table.  In the case since if this module is achived into a library, it will not be referenced and/or included in the final image during the link phase.
+#* Because NQBP links against libraries, only code that is explicitly referenced is linked into the final executable image, i.e. unused/un-referenced object modules are not included the final image.  This behavior is typically what is desired.  However, there are scenario where this is caused desired/needed modules to be omitted from the final image.  For example, if a C file contains only the processor's vector table (e.g. an array of function pointers at a hardware coded address) - there is no &quot;calling&quot; code that references this table.  In the case since if this module is archived into a library, it will not be referenced and/or included in the final image during the link phase.
 
 !! How for force object modules to always being linked/included in the final image
 
 There are two to accomplish this:
 
 # Put your C file in the project directory.  All object built in step 2 above get linked as object modules, not via libraries
-# Set the `firstobjs` and/or `lastobjs` link variable to explicity link one or more object modules.  A object module is specified by its path to the object build directory ''and'' this path needs to be relative the the build-variant directory - ''not'' the project directory, e.g. `base_release.lastobjs  = r'..\src\Bsp\Renesas\Rx\u62n\Yrdkr62n\Gnurx\vectors.o '`.
+# Or, set the `firstobjs` and/or `lastobjs` link variables to explicitly link one or more object modules.  A object module is specified by its path to the object build directory ''and'' this path needs to be relative the the build-variant directory - ''not'' the project directory, e.g. `base_release.lastobjs  = r'..\src\Bsp\Renesas\Rx\u62n\Yrdkr62n\Gnurx\vectors.o '`.
 #* The difference between `firstobjs` and `lastobjs` is that `firstobjs` is specified before all object modules and libraries when invoking the linker.  And `lastobjs` is specified after all other object modules and libraries.
 
 !! Specifying an entire directories of object files using `firstobjs` and `lastobjs` 
-There is short-cut to including all of the object module in a directory using the  `firstobjs` and `lastobjs` variable.  There is special run time symbol `_BUILT_DIR_.` that is translated as prelink step to generate a list of object modules by only specifying a directory.  The directory to include is specified using the same syntax as directories are specified in the `libdirs.b` file.  For example: `base_release.firstobjs = '_BUILT_DIR_.src/Cpl/Rte/Mp/_0test'`
+There is short-cut to including all of the object module in a directory using the  `firstobjs` and `lastobjs` variables.  There is a special build time symbol `_BUILT_DIR_.` that is translated as a prelink step to generate a list of object modules by only specifying a directory.  The directory to include is specified using the same syntax as directories are specified in the `libdirs.b` file.  For example: `base_release.firstobjs = '_BUILT_DIR_.src/Cpl/Rte/Mp/_0test'`
 
 ''Note:''  It is recommended that the above method be used instead of `base_release.firstobjs = '../src/Cpl/Rte/Mp/_0test/*.o'`.
   This is because the Windows command shell does ''not'' expand wildcards as a Linux/Unix shell does.  For example the above `*.o` notation does not work with the Mingw GCC compiler when running under Windows (however it does work with the Visual Studio compiler because Microsoft compiler does the wildcard expansion itself).</pre>

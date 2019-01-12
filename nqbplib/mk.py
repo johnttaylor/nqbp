@@ -579,7 +579,7 @@ def filter_dir_list( printer, fulllist, startdir, stopdir ):
 #-----------------------------------------------------------------------------
 def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname ):
    
-    srcpath, display, dir = utils.derive_src_path( pkg_root, entry, dir )
+    srcpath, display, dir = utils.derive_src_path( pkg_root, work_root, pkgs_dirname, entry, dir )
 
     # Banner 
     printer.output( "=====================" )

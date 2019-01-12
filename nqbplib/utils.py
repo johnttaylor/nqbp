@@ -223,15 +223,14 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
             libdirs.append( ((line, srctype, srclist), entry) )
         
 # 
-def find_libdir_entry( libdirs, dir_path, display_path=None, entry_type=None ):
+def find_libdir_entry( libdirs, dir_path, entry_type=None ):
     dir_path = standardize_dir_sep(dir_path)
     for d,e in libdirs:
         line,srctype,srclist = d
         if ( entry_type == None ):
             if ( dir_path == line ):
                 return (True, (dir_path, srctype, srclist), e )
-        elif ( display_path != None ):
-            if ( e == entry_type and display_path in line ):
+        elif ( e == entry_type and dir_path in line ):
                 return (True, (dir_path, srctype, srclist), e )
 
     return (False, (dir_path, None, None), entry_type)
@@ -364,7 +363,7 @@ def pop_dir():
     
 #-----------------------------------------------------------------------------
 #
-def derive_src_path( pkg_root, entry, dir ):
+def derive_src_path( pkg_root, work_root, pkgs_dirname, entry, dir ):
     srcpath   = ''
     display   = dir[0]
     newlibdir = dir[0]

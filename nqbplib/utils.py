@@ -38,23 +38,17 @@ def dir_list_filter_by_ext(dir, exts):
     return results
 
 
-def source_list_to_object_list( root_dir, src_dir, exts, obj_extension, new_root ):
-    """ Converts a source directory into a list of object files AND replaces
-        the source's 'root_dir' in the path with 'new_root'.  The list is returned
-        as single string.
-
-        NOTE: This function is workaround because of how the Windows CMD shell
-              does NOT expand wildcards (i.e. can't pass *.obj to the mingw
-              gcc compiler and have if work as expected)
+def get_objects_list( objext, objpath, new_root ):
+    """ Returns a list (as a single string) of object files for specified object 
+        path with each object having the 'new_root' appended to it path.
     """
-
-    files = dir_list_filter_by_ext( os.path.join(root_dir,src_dir), exts )
+    files = dir_list_filter_by_ext( objpath, objext.split() )
 
     objs  = '';
     for f in files:
         basename = os.path.splitext(f)[0]
-        basename = os.path.join(new_root, src_dir, basename)
-        objs = objs + ' ' + basename + '.' + obj_extension
+        basename = os.path.join(new_root, objpath, basename)
+        objs     = objs + ' ' + basename + '.' + objext
 
     return objs
 
@@ -228,7 +222,21 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
         else:
             libdirs.append( ((line, srctype, srclist), entry) )
         
-     
+# 
+def find_libdir_entry( libdirs, dir_path, display_path=None, entry_type=None ):
+    dir_path = standardize_dir_sep(dir_path)
+    for d,e in libdirs:
+        line,srctype,srclist = d
+        if ( entry_type == None ):
+            if ( dir_path == line ):
+                return (True, (dir_path, srctype, srclist), e )
+        elif ( display_path != None ):
+            if ( e == entry_type and display_path in line ):
+                return (True, (dir_path, srctype, srclist), e )
+
+    return (False, (dir_path, None, None), entry_type)
+
+
 #-----------------------------------------------------------------------------
 def create_subdirectory( printer, pardir, new_subdir ):
     dname  = os.path.abspath( standardize_dir_sep(pardir) + os.sep + new_subdir )
@@ -355,6 +363,36 @@ def pop_dir():
     
     
 #-----------------------------------------------------------------------------
+#
+def derive_src_path( pkg_root, entry, dir ):
+    srcpath   = ''
+    display   = dir[0]
+    newlibdir = dir[0]
+    
+    # directory is local to my package
+    if ( entry == 'local' ):
+        srcpath = pkg_root + os.sep + dir[0]
+        display = dir[0]
+    
+    elif ( entry == 'pkg' ):
+        srcpath = os.path.join( pkg_root, dir[0] )
+        display = dir[0]
+        
+    # directory is an absolute path
+    elif ( entry == 'absolute' ):
+        srcpath   = dir[0]
+        display   = dir[0]
+        objpath   = dir[0].replace(":",'',1)
+        newlibdir = os.path.join( "__abs", objpath.lstrip(os.sep) )
+
+    # directory is an external package
+    else:
+        display   = os.sep + dir[0]
+        srcpath   = work_root + os.sep + pkgs_dirname + os.sep + dir[0]
+        newlibdir = pkgs_dirname + os.sep + dir[0]
+
+    return srcpath, display, (newlibdir, dir[1], dir[2])
+
 def get_files_to_build( printer, toolchain, dir, sources_b ):
     files = []
     
@@ -402,6 +440,59 @@ def filter_files( printer, dir, file_list, filter_type, filter_files ):
     printer.debug( "# Filtered file list to build for dir: {}. {}".format( dir, files )  )
     return files;
 
+#
+def get_and_filter_files_to_build( printer, toolchain, dir, srcpath, sources_b ):
+    # check for existing 'sources.b' file 
+    files = get_files_to_build( printer, toolchain, srcpath, sources_b )
+
+    # Filter the source file by the include/exclude list (if there is one)
+    if ( dir[1] != None and dir[2] != None ):
+        files = filter_files( printer, srcpath, files, dir[1], dir[2] )
+
+    return files
+
+#-----------------------------------------------------------------------------
+def replace_build_dir_symbols( toolchain, objects_string, libdirs, new_root ):
+    objects_string = standardize_dir_sep(objects_string)
+
+    # Do nothing if no symbol(s) to expand
+    if ( not '_BUILT_DIR_.' in objects_string ):
+        return objects_string
+
+    final  = ''
+    source = objects_string.strip()
+    while( True ):
+        # Strip out special token/symbol
+        tokens = source.split( "_BUILT_DIR_.", 1 )
+        if ( len(tokens) != 2 ):
+            print( "ERROR: Missing libdir reference for _BUILT_DIR_ symbol in string: {}".format( objects_string ) )
+            sys.exit(1)
+
+        final += ' ' + tokens[0]
+        #print( "First split", tokens, "source=", source, "final=", final )
+
+        # Get libdir reference string
+        tokens = tokens[1].split(' ', 1)
+        #print( " Second split", tokens)
+        
+        # Get corresponding entry from the libdir.b
+        result, dir, entry = find_libdir_entry( libdirs, tokens[0] )
+        #print( result, dir, entry)
+        if ( result == False ):
+            print( "ERROR: Cannot find directory entry (in libdirs.b) for {}".format( objects_string ) )
+            sys.exit(1)
+
+        # convert source list to an object list
+        final += ' ' + get_objects_list(toolchain._obj_ext, dir[0], new_root )
+
+        # Nothing left to parse
+        if ( len(tokens) == 1 ):
+            return final 
+
+        # Are the any remaining special token/symbols
+        source = tokens[1]
+        if ( not '_BUILT_DIR_.' in source ):
+            return final + ' ' + source
 
 #-----------------------------------------------------------------------------
 def list_libdirs( printer, libs ):

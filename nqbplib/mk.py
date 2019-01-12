@@ -90,6 +90,8 @@ Arguments:
   --def1 SYM1      Defines (as a compiler option) the preprocessor 'SYM1'.
   --def2 SYM2      Defines (as a compiler option) the preprocessor 'SYM2'.
   --def3 SYM3      Defines (as a compiler option) the preprocessor 'SYM3'.
+  --def4 SYM4      Defines (as a compiler option) the preprocessor 'SYM4'.
+  --def5 SYM5      Defines (as a compiler option) the preprocessor 'SYM5'.
   -t, --turbo      Uses multiple process to build directories in parallel.
   -z, --clean-all  Cleans ALL files for ALL build configurations and then exits
   --debug          Enables debug info internally to NQBP.
@@ -248,38 +250,39 @@ def do_build( printer, toolchain, arguments, variant ):
     # Compile only a single directory    
     if ( arguments['-d'] ):
         clean_pkg = clean_ext = clean_abs = bld_prj = do_link = bld_libs = False
-        dir       = utils.standardize_dir_sep( arguments['-d'] )
+        dir_path  = utils.standardize_dir_sep( arguments['-d'] )
         entry     = 'local'
 
         # Trap directory is relative to the workspace root
-        if ( dir.startswith(os.sep+os.sep) ):
-            dir     = dir[2:]
-            entry   = 'xpkg'
+        if ( dir_path.startswith(os.sep+os.sep) ):
+            dir_path = dir_path[2:]
+            entry    = 'xpkg'
                                               
         # Trap directory is relative to the package root
-        elif ( dir.startswith(os.sep) ):
-            dir   = dir[1:]
-            entry = 'pkg'
+        elif ( dir_path.startswith(os.sep) ):
+            dir_path = dir_path[1:]
+            entry    = 'pkg'
             
         # special case of relative to the workspace
-        elif ( dir.startswith(NQBP_WRKPKGS_DIRNAME()) ):
-            dir     = dir[len(NQBP_WRKPKGS_DIRNAME())+1:]
-            entry   = 'xpkg'
+        elif ( dir_path.startswith(NQBP_WRKPKGS_DIRNAME()) ):
+            dir_path = dir_path[len(NQBP_WRKPKGS_DIRNAME())+1:]
+            entry    = 'xpkg'
         
        # special case of absolute directory that was already built, e.g. nqbp -d __abs\c\my\absolute\path
-        elif ( dir.startswith("__abs") ):
-            entry   = 'absolute'
-            dir     = dir[len("__abs")+1:]
-            if ( dir[1] == os.sep ):
-                dir = dir[0:1] + ':' + dir[1:]
+        elif ( dir_path.startswith("__abs") ):
+            entry    = 'absolute'
+            dir_path = dir_path[len("__abs")+1:]
+            if ( dir_path[1] == os.sep ):
+                dir_path = dir_path[0:1] + ':' + dir_path[1:]
 
         # Trap absolute/environment variable directory
-        elif ( dir.startswith('$') ):
-            dir   = utils.replace_environ_variable( printer, dir )
-            entry = "absolute"
+        elif ( dir_path.startswith('$') ):
+            dir_path = utils.replace_environ_variable( printer, dir_path )
+            entry    = "absolute"
 
-        dirtuple = (dir, None, None)
-        build_single_directory( printer, arguments, toolchain, dirtuple, entry, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
+        # Attempt to find the specified entry in the libdirs list to GET the 'source list' for the specified directory
+        found,dir,entry = utils.find_libdir_entry( libdirs, dir_path, entry_type=entry )
+        build_single_directory( printer, arguments, toolchain, dir, entry, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
         
     # Trap compile just the project directory
     if ( arguments['-m'] ):
@@ -428,9 +431,11 @@ def do_build( printer, toolchain, arguments, variant ):
     
     # Peform link
     if ( do_link ):
-        inf = open( NQBP_NAME_LIBDIRS(), 'r' )
-        toolchain.link( arguments, inf, 'local', variant )
-        inf.close()
+       inf = open( NQBP_NAME_LIBDIRS(), 'r' )
+       link_libdirs = toolchain.pre_link( arguments, inf, 'local', variant )
+       inf.close()
+       
+       toolchain.link( arguments, link_libdirs, 'local', variant )
                             
     # Output end banner
     end_banner(printer, toolchain)
@@ -574,30 +579,7 @@ def filter_dir_list( printer, fulllist, startdir, stopdir ):
 #-----------------------------------------------------------------------------
 def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname ):
    
-    srcpath = ''
-    display = ''
-    
-    # directory is local to my package
-    if ( entry == 'local' ):
-        srcpath = pkg_root + os.sep + dir[0]
-        display = dir[0]
-    
-    elif ( entry == 'pkg' ):
-        srcpath = os.path.join( pkg_root, dir[0] )
-        display = dir[0]
-        
-    # directory is an absolute path
-    elif ( entry == 'absolute' ):
-        srcpath = dir[0]
-        display = dir[0]
-        objpath = dir[0].replace(":",'',1)
-        dir[0]  = os.path.join( "__abs", objpath.lstrip(os.sep) )
-
-    # directory is an external package
-    else:
-        display = os.sep + dir[0]
-        srcpath = work_root + os.sep + pkgs_dirname + os.sep + dir[0]
-        dir[0]  = pkgs_dirname + os.sep + dir[0]
+    srcpath, display, dir = utils.derive_src_path( pkg_root, entry, dir )
 
     # Banner 
     printer.output( "=====================" )
@@ -620,13 +602,9 @@ def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root,
     d = utils.create_subdirectory( printer, os.getcwd(), dir[0] )
     utils.push_dir( d )
 
-    # check for existing 'sources.b' file 
-    files = utils.get_files_to_build( printer, toolchain, srcpath, NQBP_NAME_SOURCES() )
-
-    # Filter the source file by the include/exclude list (if there is one)
-    if ( dir[1] != None and dir[2] != None ):
-        files = utils.filter_files( printer, srcpath, files, dir[1], dir[2] )
-
+    # Get/Construct the source file list and filter it (if needed) for the specified directory
+    files = utils.get_and_filter_files_to_build( printer, toolchain, dir, srcpath, NQBP_NAME_SOURCES() )
+    
     # compile using a single process
     if ( arguments['-1'] ):
         for f in files:

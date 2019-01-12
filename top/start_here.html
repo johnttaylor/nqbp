@@ -229,6 +229,10 @@ Error message and password prompt
 
 <li>$:/state/toc/Contents-Overview--242358753</li>
 
+<li>$:/state/toc/Contents-Using NQBP--242358753</li>
+
+<li>$:/state/toc/Overview-Using NQBP--242358753</li>
+
 <li>$:/StoryList</li>
 
 <li>$:/temp/advancedsearch</li>
@@ -269,9 +273,17 @@ Error message and password prompt
 
 <li>Licensing</li>
 
+<li>Linking</li>
+
 <li>NQBP History</li>
 
 <li>Overview</li>
+
+<li>Running NQBP</li>
+
+<li>Selecting a ToolChain</li>
+
+<li>Selecting What To Build</li>
 
 <li>TopButtons</li>
 
@@ -5316,10 +5328,16 @@ html .solidborders td {  border: 1px solid black; }</pre>
 <div modified="20141011172627069" title="$:/state/toc/Contents-Intro--966365951">
 <pre>open</pre>
 </div>
-<div modified="20141230012524223" title="$:/state/toc/Contents-Overview--242358753">
+<div modified="20190112030821518" title="$:/state/toc/Contents-Overview--242358753">
+<pre>close</pre>
+</div>
+<div modified="20190112030822546" title="$:/state/toc/Contents-Using NQBP--242358753">
+<pre>close</pre>
+</div>
+<div modified="20190112022928289" title="$:/state/toc/Overview-Using NQBP--242358753">
 <pre>open</pre>
 </div>
-<div list="[[Using NQBP]] Overview" title="$:/StoryList">
+<div list="Overview" title="$:/StoryList">
 <pre></pre>
 </div>
 <div created="20141011164829984" modified="20141020024516096" title="$:/temp/advancedsearch">
@@ -5339,7 +5357,7 @@ html .solidborders td {  border: 1px solid black; }</pre>
     }
 }</pre>
 </div>
-<div created="20141011164514051" modified="20141012060438057" title="$:/temp/NewTagName">
+<div created="20141011164514051" modified="20190112022944595" title="$:/temp/NewTagName">
 <pre></pre>
 </div>
 <div created="20141011171545808" modified="20141011171550853" title="$:/temp/search">
@@ -5533,6 +5551,27 @@ __''//Table-of-Contents//''__
 
 &lt;div align=&quot;center&quot;&gt;&lt;iframe src=&quot;./license.txt&quot; frameborder=&quot;0&quot; width=&quot;100%&quot; height=&quot;800&quot;&gt;&lt;/iframe&gt;&lt;/div&gt;</pre>
 </div>
+<div created="20190112023423748" modified="20190112030622252" tags="[[Using NQBP]] Usage" title="Linking">
+<pre>!! The build sequnce
+# NQBP compiles out of source directories listed in the libdirs.b file into individual library/archive.
+# NQBP then compiles the source code (if any) in the project directory
+# The link phase consists of linking the objects files from the project directory (step 2) against all of the libraries created in step 1.
+#* Because NQBP links against libraries, only code that is explicitly referenced is linked into the final executable image, i.e. unused/un-referenced object modules are not included the final image.  This behavior is typically what is desired.  However, there are scenario where this is caused desired/needed modules to be omitted from the final image.  For example, if a C file contains only the processor's vector table (e.g. an array of function pointers at a hardware coded address) - there is no &quot;calling&quot; code that references this table.  In the case since if this module is achived into a library, it will not be referenced and/or included in the final image during the link phase.
+
+!! How for force object modules to always being linked/included in the final image
+
+There are two to accomplish this:
+
+# Put your C file in the project directory.  All object built in step 2 above get linked as object modules, not via libraries
+# Set the `firstobjs` and/or `lastobjs` link variable to explicity link one or more object modules.  A object module is specified by its path to the object build directory ''and'' this path needs to be relative the the build-variant directory - ''not'' the project directory, e.g. `base_release.lastobjs  = r'..\src\Bsp\Renesas\Rx\u62n\Yrdkr62n\Gnurx\vectors.o '`.
+#* The difference between `firstobjs` and `lastobjs` is that `firstobjs` is specified before all object modules and libraries when invoking the linker.  And `lastobjs` is specified after all other object modules and libraries.
+
+!! Specifying an entire directories of object files using `firstobjs` and `lastobjs` 
+There is short-cut to including all of the object module in a directory using the  `firstobjs` and `lastobjs` variable.  There is special run time symbol `_BUILT_DIR_.` that is translated as prelink step to generate a list of object modules by only specifying a directory.  The directory to include is specified using the same syntax as directories are specified in the `libdirs.b` file.  For example: `base_release.firstobjs = '_BUILT_DIR_.src/Cpl/Rte/Mp/_0test'`
+
+''Note:''  It is recommended that the above method be used instead of `base_release.firstobjs = '../src/Cpl/Rte/Mp/_0test/*.o'`.
+  This is because the Windows command shell does ''not'' expand wildcards as a Linux/Unix shell does.  For example the above `*.o` notation does not work with the Mingw GCC compiler when running under Windows (however it does work with the Visual Studio compiler because Microsoft compiler does the wildcard expansion itself).</pre>
+</div>
 <div created="20140727034237559" creator="JohnTaylor" modified="20141228154154090" modifier="JohnTaylor" tags="Overview" title="NQBP History">
 <pre>Why NQBP?  First we need to start with [[Benv|http://mnmoran.org/benvman.html]].  Benv is build engine that was developed to 'free' developers from authoring makefile and provide a simple and resusable method for building C/C++ source code.  Benv was originally develop for *NIX platforms.  A [[fork|http://sourceforge.net/projects/openrepo]] of the project ported Benv to run on Windows.  A principle issue with running Benv on Windows is that because of Benv's root, the Windows port relies on the [[Cygwin.dll|http://www.cygwin.com]].  Cygwin is great alternative for running in a Linux like environment on a Windows box - but it does incur a performance hit.  
 
@@ -5568,72 +5607,8 @@ For those interested the back story for NQBP can be found [[here|NQBP History]].
 
 {{LeftMenu}}</pre>
 </div>
-<div created="20141012034532185" modified="20141019032946319" tags="$:/tags/TopLeftBar" title="TopButtons">
-<pre>&lt;div class=&quot;tc-page-controls tc-toolbar&quot;&gt;
-&lt;span style=&quot;font-family:'Lucida Console', monospace; font-size: 2em; margin:0 padding:0;&quot;&gt;[[int fox();|http://integerfox.com]] &lt;/span&gt;
-{{$:/core/ui/Buttons/home}}
-{{$:/_list-all-button}}
-{{$:/_list-tags-button}}
-{{$:/_search-button}}
-{{$:/core/ui/Buttons/new-tiddler}}
-{{$:/core/ui/Buttons/save-wiki}}
-{{$:/_sidebar-button}}
-{{$:/core/ui/Buttons/control-panel}}
-{{$:/core/ui/Buttons/close-all}}
-&lt;div&gt;</pre>
-</div>
-<div created="20140727053309493" creator="JohnTaylor" modified="20190109030217668" modifier="JohnTaylor" tags="Overview" title="Using NQBP">
-<pre>!Selecting a toolchain
-* Make a copy of 'xxxx mytoolchain.py' script for the desired toolchain directory under &lt;code&gt;nqbp/toolchains&lt;/code&gt; directory and place it in your project directory.
-** Rename the file to &lt;code&gt;mytoolchain.py&lt;/code&gt;
-** Edit the new file to customize the built options for your projects.
-* Make a copy of the file &lt;code&gt;nqbp/nqbp.py&lt;/code&gt; and place it in your project directory
-
-!Selecting what source to build
-
-* In a project directory, create a file named &lt;code&gt;libdirs.b&lt;/code&gt;.  This file contains a list of all source code directories to be built
-** Directories are referenced relative to the //package// root directory
-** An entry in the file can reference another &lt;code&gt;libdirs.b&lt;/code&gt; file within the &lt;code&gt;projects/&lt;/code&gt; directory tree.  The syntax for this is to use relative directory path qualifer to the reference &lt;code&gt;libdirs.b&lt;/code&gt; file.
-** When building within [[Outcast|http://integerfox.com/outcast/index.html]], directories within an external package are referenced by leading '/', then package name, then the source directory.
-** Blank lines, or lines starting with '#' are ignored.
-** An entry that starts with `[&lt;variant&gt;]` will only be compiled when `&lt;variant&gt;` matches the build variant specified when nqbp is invoked.  
-***Entries with no `[]` prefix are compiled for all variants.
-***An optional `|` can be used to include multiple variants inside the `[]`, e.g `[arm7|arm9]`
-** An entry can specify a optional trailing list of source files (in the specified directory) to either omitted from the build, or to only build the specified files for that directory entry.  The `&lt;` is used to specify a build only list of files.  The `&gt;` is used to specify a exclude list of files
-
-
-* Within an individual source code directory (including the project directory), NQBP assumes that all source code (found by file extensions) shall be built.  This behavior can be overridden by creating a file named &lt;code&gt;sources.b&lt;/code&gt; in a directory that specifically what file(s) to build.
-** Blank lines, or lines starting with '#' are ignored.
-
-!Example &lt;code&gt;libdirs.b&lt;/code&gt; file
-```
-# Build the src/foo directory in my package
-src/foo
-
-# Build the src/foo directory but do NOT build the hello.c and world.cpp files
-src/foo &gt; hello.c world.cpp
-
-# Build the src/foo directory but ONLY build the hello.c and world.cpp files
-src/foobar &lt; hello.c world.cpp
-
-# Include a common libdirs.b file (use relative-to-the-package root syntax)
-/top/my_common_libdirs.b
-
-# Within Outcast, build PkgB's src/bob directory (e.g.. relative-to-the- workspace root)
-//PkgB/src/bob
-
-# Build an using an absolute path that the base path is specified by an environment variable
-# where ARDUINO_TOOLS=c:\Progra~2\Ardunio
-$ARDUINO_TOOLS$/hardware/arduino/cores/arduino
-
-# Directory specific to the 'cpp1' variant
-[cpp11] src/Cpl/System/_cpp11
-
-# Build all directories specified in the following file (relative to my project directory)
-../../../libdirs.b
-```
-
-!Running NQBP
+<div created="20190112023225659" modified="20190112023323587" tags="[[Using NQBP]] Usage" title="Running NQBP">
+<pre>!Running NQBP
 * Running the python script &lt;code&gt;nqbp.py&lt;/code&gt; with no options will do the following:
 ** Clean all derived objects for the //release// build
 ** Build all objects and outputs for the //release// build
@@ -5642,7 +5617,7 @@ $ARDUINO_TOOLS$/hardware/arduino/cores/arduino
 ** ''Building with //debug// enabled is __not__ consider an build configuration''
 * NQBP has numerous build options for modify the basic behavior, i.e. enable debug, selectively build directories and files, suppress cleaning, etc.  Type &lt;code&gt;nqbp -h&lt;/code&gt; for list of options.
 
-!NQBP build options
+!!NQBP build options
 Note: This is just a snapshot of the current options, i.e. your option list may be different
 
 ```
@@ -5709,6 +5684,80 @@ Notes:
     build.  The exception to this rule is when one of the following options are
     specified: -d, -f, -s, -e, -p, -x, -m, -l, -k, -j
 ```</pre>
+</div>
+<div created="20190112022741129" modified="20190112023013594" tags="[[Using NQBP]] Usage" title="Selecting a ToolChain">
+<pre>* Make a copy of 'xxxx mytoolchain.py' script for the desired toolchain directory under &lt;code&gt;nqbp/toolchains&lt;/code&gt; directory and place it in your project directory.
+** Rename the file to &lt;code&gt;mytoolchain.py&lt;/code&gt;
+** Edit the new file to customize the built options for your projects.
+* Make a copy of the file &lt;code&gt;nqbp/nqbp.py&lt;/code&gt; and place it in your project directory
+</pre>
+</div>
+<div created="20190112023024780" modified="20190112023352577" tags="[[Using NQBP]] Usage" title="Selecting What To Build">
+<pre>* In a project directory, create a file named &lt;code&gt;libdirs.b&lt;/code&gt;.  This file contains a list of all source code directories to be built
+** Directories are referenced relative to the //package// root directory
+** An entry in the file can reference another &lt;code&gt;libdirs.b&lt;/code&gt; file within the &lt;code&gt;projects/&lt;/code&gt; directory tree.  The syntax for this is to use relative directory path qualifer to the reference &lt;code&gt;libdirs.b&lt;/code&gt; file.
+** When building within [[Outcast|http://integerfox.com/outcast/index.html]], directories within an external package are referenced by leading '/', then package name, then the source directory.
+** Blank lines, or lines starting with '#' are ignored.
+** An entry that starts with `[&lt;variant&gt;]` will only be compiled when `&lt;variant&gt;` matches the build variant specified when nqbp is invoked.  
+***Entries with no `[]` prefix are compiled for all variants.
+***An optional `|` can be used to include multiple variants inside the `[]`, e.g `[arm7|arm9]`
+** An entry can specify a optional trailing list of source files (in the specified directory) to either omitted from the build, or to only build the specified files for that directory entry.  The `&lt;` is used to specify a build only list of files.  The `&gt;` is used to specify a exclude list of files
+
+
+* Within an individual source code directory (including the project directory), NQBP assumes that all source code (found by file extensions) shall be built.  This behavior can be overridden by creating a file named &lt;code&gt;sources.b&lt;/code&gt; in a directory that specifically what file(s) to build.
+** Blank lines, or lines starting with '#' are ignored.
+
+
+!!Example &lt;code&gt;libdirs.b&lt;/code&gt; file
+```
+# Build the src/foo directory in my package
+src/foo
+
+# Build the src/foo directory but do NOT build the hello.c and world.cpp files
+src/foo &gt; hello.c world.cpp
+
+# Build the src/foo directory but ONLY build the hello.c and world.cpp files
+src/foobar &lt; hello.c world.cpp
+
+# Include a common libdirs.b file (use relative-to-the-package root syntax)
+/top/my_common_libdirs.b
+
+# Within Outcast, build PkgB's src/bob directory (e.g.. relative-to-the- workspace root)
+//PkgB/src/bob
+
+# Build an using an absolute path that the base path is specified by an environment variable
+# where ARDUINO_TOOLS=c:\Progra~2\Ardunio
+$ARDUINO_TOOLS$/hardware/arduino/cores/arduino
+
+# Directory specific to the 'cpp1' variant
+[cpp11] src/Cpl/System/_cpp11
+
+# Build all directories specified in the following file (relative to my project directory)
+../../../libdirs.b
+```</pre>
+</div>
+<div created="20141012034532185" modified="20141019032946319" tags="$:/tags/TopLeftBar" title="TopButtons">
+<pre>&lt;div class=&quot;tc-page-controls tc-toolbar&quot;&gt;
+&lt;span style=&quot;font-family:'Lucida Console', monospace; font-size: 2em; margin:0 padding:0;&quot;&gt;[[int fox();|http://integerfox.com]] &lt;/span&gt;
+{{$:/core/ui/Buttons/home}}
+{{$:/_list-all-button}}
+{{$:/_list-tags-button}}
+{{$:/_search-button}}
+{{$:/core/ui/Buttons/new-tiddler}}
+{{$:/core/ui/Buttons/save-wiki}}
+{{$:/_sidebar-button}}
+{{$:/core/ui/Buttons/control-panel}}
+{{$:/core/ui/Buttons/close-all}}
+&lt;div&gt;</pre>
+</div>
+<div created="20140727053309493" creator="JohnTaylor" modified="20190112030808003" modifier="JohnTaylor" tags="Contents" title="Using NQBP">
+<pre>!!Topics
+&lt;h2&gt;
+&lt;ul&gt;
+&lt;$list filter=&quot;[tag[Usage]sort[title]]&quot;&gt;&lt;li&gt;&lt;$link&gt;&lt;$view field=&quot;title&quot;/&gt;&lt;/$link&gt;&lt;/li&gt;
+&lt;/$list&gt;
+&lt;/ul&gt;
+&lt;/h2&gt;</pre>
 </div>
 <div created="20140727043918143" creator="JohnTaylor" modified="20150809035603581" modifier="JohnTaylor" tags="Overview" title="Workspace Structure">
 <pre>!!NQBP assuming the following about code organization:

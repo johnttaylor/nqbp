@@ -20,6 +20,8 @@ from my_globals import OUT
 
 # Module globals
 _dirstack = []
+verbose_mode = False
+
 
 
 #-----------------------------------------------------------------------------
@@ -52,6 +54,17 @@ def get_objects_list( objext, objpath, new_root ):
 
     return objs
 
+def walk_file_list( pattern, pkgpath, skipdir=None ):
+    """ Generates a list of files in a directory and with the ability to skip a specified directory tree """
+
+    list = []
+    for root, dirs, files in os.walk(pkgpath):
+        if ( skipdir == None or root != skipdir ):
+            for f in fnmatch.filter(files,pattern):
+                list.append( os.path.join(root,f) )
+            
+    return list  
+
 #-----------------------------------------------------------------------------
 def run_shell( printer, cmd, capture_output=True ):
     p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE ) if capture_output else subprocess.Popen( cmd, shell=True ) 
@@ -69,6 +82,23 @@ def run_shell( printer, cmd, capture_output=True ):
 
     return p.returncode
 
+#
+def run_shell2( cmd, stdout=False, on_err_msg=None ):
+    """ Alternate semantics use internal 'verbose' flag instead of a printer
+    """
+
+    print_verbose( cmd )
+    if ( stdout ):
+        p = subprocess.Popen( cmd, shell=True )
+    else:
+        p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
+
+    r = p.communicate()
+    if ( p.returncode != 0 and on_err_msg != None ):
+        print_verbose( "{} {}".format(r[0],r[1]) )
+        exit(on_err_msg)
+
+    return (p.returncode, "{} {}".format(r[0],r[1]) )
 
 #-----------------------------------------------------------------------------
 def del_files_by_ext(dir, *exts): 
@@ -504,3 +534,24 @@ def list_libdirs( printer, libs ):
         else:
             printer.debug( "#   {:<5}:  {} -- {} {}".format( str(flag), d, s, sl)  )
 
+#-----------------------------------------------------------------------------
+def print_verbose( msg, new_line=True ):
+    """ Outputs the content of 'msg' based on the global verbose setting. When
+        the 'new_line' flag is set to true and newline character sequence is
+        appended to the output. Use set_verbose_mode to enable/disable this 
+        functions output. 
+    """
+    if ( verbose_mode ):
+        if ( new_line ):
+            print( msg )
+        else:
+            print( msg, end='' )
+        
+#
+def set_verbose_mode( newstate ):
+    """ When 'newstate' is true, then the print_verbose method will generate
+        output; else the print_verbose method will suppress its output.
+    """
+
+    global verbose_mode
+    verbose_mode = newstate

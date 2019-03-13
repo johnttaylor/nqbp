@@ -1,5 +1,6 @@
 """Collection of helper functions"""
 
+from __future__ import print_function
 import os
 import logging
 import sys

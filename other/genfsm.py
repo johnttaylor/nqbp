@@ -17,6 +17,7 @@ sys.path.append( NQBP_BIN )
 from other import genfsm_base
 sys.argv.append('')
 sys.argv.append('')
+sys.argv.append('')
 
 
 ###############################################################
@@ -31,6 +32,7 @@ genfsm_base.run( sys.argv )
 # Generate FSM#2, where [1]:= Diagram name, [2]:= Namespace(s).
 #sys.argv[1] = 'Example2'
 #sys.argv[2] = 'Rte::Db::Record'
+#sys.argv[2] = '-d 4'
 #genfsm_base.run( sys.argv )
 
 

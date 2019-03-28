@@ -134,7 +134,8 @@ def run( argv, copyright=None ):
     mangle_event_names( oldevt, eventList, fsm, ' ' )
     mangle_event_names( oldfsmcpp, eventList, fsm, '"', '0', '=' )
     mangle_event_names( oldtrace, eventList, fsm, '"' )
-      
+    cleanup_global_define( oldevt, fsm, names )
+
     # Generate Context/Base class
     actions, guards = getContextMethods( fsmdiag )
     generatedContextClass( base, names, getHeader(), actions, guards )
@@ -275,7 +276,25 @@ def cleanup_for_doxygen( headerfile, classname='<not-used>' ):
     
     os.remove( headerfile )
     os.rename( tmpfile, headerfile )
+ 
+#
+def cleanup_global_define( headerfile, fsm_name, namespaces ):
+    tmpfile = headerfile + ".tmp"
+    skip_state = 0
+    with open( headerfile ) as inf:
+        with open( tmpfile, "w") as outf:  
+            for line in inf:
+
+                if ( line.startswith( '#define InnermostStates ' )-1 ):
+                    outf.write( line )
+                else:
+                    tokens = line.split()
+                    outf.write( '#define {}{}_InnermostStates {};\n'.format(flatten_namespaces(namespaces), fsm_name, tokens[2]))
+    
+    os.remove( headerfile )
+    os.rename( tmpfile, headerfile )
                      
+
 #
 def cleanup_includes( headerfile, namespaces, oldfsm, newfsm, oldevt, newevt, base ):
     tmpfile = headerfile + ".tmp"

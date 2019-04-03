@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/python3
 """
  
 Chuck is an script for invoking a package's automated unit tests
@@ -143,9 +143,9 @@ if __name__ == '__main__':
             exe    = os.path.basename(t)
             cmd    = "{} {}".format( exe, arg_string )
             for n in range( int(args['--loop']) ):
-                print "= EXECUTING (#{}): {} {}".format( n+1, reldir, arg_string )
+                print("= EXECUTING (#{}): {} {}".format( n+1, reldir, arg_string ))
                 result = utils.run_shell( cmd, args['-v'], "** ERROR: Test failed **" )
             utils.pop_dir
             
-        print "= ALL Test(s) passed."
+        print("= ALL Test(s) passed.")
  

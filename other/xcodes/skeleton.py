@@ -21,6 +21,8 @@ Common Options:
 Notes:
         
 """
+from __future__ import absolute_import
+from __future__ import print_function
 from nqbplib.docopt.docopt import docopt
 from nqbplib import utils
 from other import utils2
@@ -29,7 +31,7 @@ import os, sys
 
 #---------------------------------------------------------------------------------------------------------
 def display_summary():
-    print "{:<13}{}".format( 'skeleton', 'Generate skeleton C++ header/cpp files' )
+    print("{:<13}{}".format( 'skeleton', 'Generate skeleton C++ header/cpp files' ))
     
 
 #------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 """
 Script to build projects using NQBP
 ===============================================================================
@@ -73,7 +73,7 @@ def _build_project( prjdir, verbose, bldopts, config, xconfig, pkgroot ):
     
     # Build the project
     utils.push_dir( os.path.dirname(prjdir) )
-    print "BUILDING: "+ prjdir
+    print("BUILDING: "+ prjdir)
     cmd = 'nqbp.py ' + " ".join(bldopts)
     if ( config ):
         cmd = utils.concatenate_commands( cfg, cmd )

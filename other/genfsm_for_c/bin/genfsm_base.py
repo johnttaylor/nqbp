@@ -17,6 +17,8 @@
 #=============================================================================
 
 #
+from __future__ import absolute_import
+from __future__ import print_function
 import sys   
 import os
 import subprocess
@@ -63,7 +65,7 @@ import sys
 # Parse command line
 def run( argv ):
 
-    print argv
+    print(argv)
     
     # Process command line args...
     args = docopt(usage, version="0.0.1" )
@@ -89,7 +91,7 @@ def run( argv ):
     cmd = standardize_dir_sep( cmd )
   
     # Invoke Sinelabore command
-    print cmd
+    print(cmd)
     p = subprocess.Popen( cmd, shell=True )
     r = p.communicate()
     if ( p.returncode != 0 ):

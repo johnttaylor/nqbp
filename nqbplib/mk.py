@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """ Top level entry point for NQBP (i.e. called by the project-being-built's mk.py) """
 
 #=============================================================================
@@ -19,23 +20,23 @@ import time
 from multiprocessing import Process
 
 #
-from nqbplib.docopt.docopt import docopt
-from base import ToolChain
-from output import Printer
-import base
-import utils
+from .docopt.docopt import docopt
+from .base import ToolChain
+from .output import Printer
+from . import base
+from . import utils
 import multiprocessing
 
     
 # Globals
-from my_globals import NQBP_WORK_ROOT
-from my_globals import NQBP_PKG_ROOT
-from my_globals import NQBP_TEMP_EXT
-from my_globals import NQBP_VERSION
-from my_globals import NQBP_PRJ_DIR
-from my_globals import NQBP_NAME_LIBDIRS
-from my_globals import NQBP_WRKPKGS_DIRNAME
-from my_globals import NQBP_NAME_SOURCES
+from .my_globals import NQBP_WORK_ROOT
+from .my_globals import NQBP_PKG_ROOT
+from .my_globals import NQBP_TEMP_EXT
+from .my_globals import NQBP_VERSION
+from .my_globals import NQBP_PRJ_DIR
+from .my_globals import NQBP_NAME_LIBDIRS
+from .my_globals import NQBP_WRKPKGS_DIRNAME
+from .my_globals import NQBP_NAME_SOURCES
 
 
 # 
@@ -387,7 +388,7 @@ def do_build( printer, toolchain, arguments, variant ):
                 max     = len(build)
                 index   = 0
                 busy    = 0
-                cpus    = multiprocessing.cpu_count() / 2 + 1 
+                cpus    = multiprocessing.cpu_count() // 2 + 1 
                 handles = []
                 for h in range(0,cpus):
                     handles.append( None )

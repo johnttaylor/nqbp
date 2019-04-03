@@ -1,23 +1,23 @@
+#!/usr/bin/python3
 """Collection of helper functions"""
 
-from __future__ import print_function
 import os
 import logging
 import sys
 import subprocess
 
 # Globals
-from my_globals import NQBP_WORK_ROOT
-from my_globals import NQBP_PKG_ROOT
-from my_globals import NQBP_TEMP_EXT
-from my_globals import NQBP_VERSION
-from my_globals import NQBP_PRJ_DIR
-from my_globals import NQBP_NAME_LIBDIRS
-from my_globals import NQBP_PRJ_DIR_MARKER1
-from my_globals import NQBP_PRJ_DIR_MARKER2
-from my_globals import NQBP_PKG_TOP
-from my_globals import NQBP_WRKPKGS_DIRNAME
-from my_globals import OUT
+from .my_globals import NQBP_WORK_ROOT
+from .my_globals import NQBP_PKG_ROOT
+from .my_globals import NQBP_TEMP_EXT
+from .my_globals import NQBP_VERSION
+from .my_globals import NQBP_PRJ_DIR
+from .my_globals import NQBP_NAME_LIBDIRS
+from .my_globals import NQBP_PRJ_DIR_MARKER1
+from .my_globals import NQBP_PRJ_DIR_MARKER2
+from .my_globals import NQBP_PKG_TOP
+from .my_globals import NQBP_WRKPKGS_DIRNAME
+from .my_globals import OUT
 
 # Module globals
 _dirstack = []
@@ -72,12 +72,12 @@ def run_shell( printer, cmd, capture_output=True ):
     r = p.communicate()
 
     if ( r[0] != None ):
-        line =  r[0].rstrip()
+        line =  r[0].decode().rstrip()
         if ( line != "" ):
             printer.output( line )
             
     if ( r[1] != None ):
-        line =  r[1].rstrip()
+        line =  r[1].decode().rstrip()
         if ( line != "" ):
             printer.output( line )
 

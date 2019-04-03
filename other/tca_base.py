@@ -7,6 +7,7 @@ import sys
 import os
 import subprocess
 import fnmatch
+import platform
 #
 from nqbplib.docopt.docopt import docopt
 from nqbplib import utils
@@ -91,12 +92,15 @@ def run(argv):
 
     # Generate summary
     if (args['rpt']):
-        here = utils.standardize_dir_sep(os.path.dirname(__file__)).replace('\\\\','\\')
-        cmd  = '{}{}gcovr.exe {} -r {}{}src --object-directory . {}'.format(here, os.sep, excludes, pkg, os.sep, ' '.join(args['<args>']) if args['<args>'] else '') 
+        python = 'python'
+        if ( platform.system() == 'Windows' ):
+            python = 'py -3'
+
+        cmd  = '{} -m gcovr {} -r {}{}src --object-directory . {}'.format(python, excludes, pkg, os.sep, ' '.join(args['<args>']) if args['<args>'] else '') 
         if (args['<args>']):
             first = args['<args>'][0]
             if (first == '-h' or first == '--help'):
-                cmd = 'python {}{}gcovr.exe --help'.format(here, os.sep) 
+                cmd = '{} -m gcovr --help'.format(python)
         run_shell(cmd, True)
 
     # Generate human readable .gcov files
@@ -128,7 +132,9 @@ def run_shell(cmd, verbose_flag=False, on_err_msg=None):
     if (p.returncode != 0 and on_err_msg != None):
         exit(on_err_msg)
     
-    return (p.returncode, "{} {}".format(r[0],r[1]))
+    r0 = '' if r[0] == None else r[0].decode()
+    r1 = '' if r[1] == None else r[1].decode()
+    return (p.returncode, "{} {}".format(r0,r1))
 
 
 #------------------------------------------------------------------------------
@@ -143,9 +149,9 @@ def search(path, filter, wsize):
     for file in os.listdir(path):
         if (fnmatch.fnmatch(file,filter)):
             if (os.path.isfile(file)):
-                print
-                print "FILE: {}".format(file)
-                print "-" * 80
+                print()
+                print("FILE: {}".format(file))
+                print("-" * 80)
                 _searchfile(file, wsize)
                 
                 
@@ -201,5 +207,5 @@ def _searchfile(file, window_size):
         
 def _print_window(lines):
     for l in lines:
-        print l,
-    print    
+        print(l, end=' ')
+    print()    

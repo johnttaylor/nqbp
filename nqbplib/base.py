@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """Base toolchain functions and classes
 
 Magic Symbols
@@ -37,16 +38,16 @@ import sys
 import subprocess
 
 #
-import utils
+from . import utils
 
 # Globals
-from my_globals import NQBP_WORK_ROOT
-from my_globals import NQBP_PKG_ROOT
-from my_globals import NQBP_TEMP_EXT
-from my_globals import NQBP_VERSION
-from my_globals import NQBP_PRJ_DIR
-from my_globals import NQBP_WRKPKGS_DIRNAME
-from my_globals import NQBP_PUBLICAPI_DIRNAME
+from .my_globals import NQBP_WORK_ROOT
+from .my_globals import NQBP_PKG_ROOT
+from .my_globals import NQBP_TEMP_EXT
+from .my_globals import NQBP_VERSION
+from .my_globals import NQBP_PRJ_DIR
+from .my_globals import NQBP_WRKPKGS_DIRNAME
+from .my_globals import NQBP_PUBLICAPI_DIRNAME
 
 
 # Structure for holding build-variant specific options
@@ -260,7 +261,7 @@ class ToolChain:
     
     #--------------------------------------------------------------------------
     def get_variants(self):
-        return self._bld_variants.keys()
+        return list(self._bld_variants.keys())
             
     #--------------------------------------------------------------------------
     def get_ccname(self):
@@ -286,7 +287,7 @@ class ToolChain:
         
         # Select/set build variant
         self._bld = bld_var
-        if ( not self._bld_variants.has_key(bld_var) ):
+        if ( bld_var not in self._bld_variants ):
             self._printer.output( 'ERROR: Invalid variant ({}) selected'.format( bld_var ) )
             sys.exit(1)
             

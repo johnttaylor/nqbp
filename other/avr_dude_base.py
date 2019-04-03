@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 """
  
 avr-dude is a python wrapper to invoke the AVRDUDE utility
@@ -35,6 +35,8 @@ NOTE:
 
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import os
 
@@ -50,7 +52,7 @@ class Printer:
         pass
 
     def output(self,line):
-        print line
+        print(line)
 
 
 #------------------------------------------------------------------------------
@@ -76,7 +78,7 @@ def run( argv ):
     # Get environment variable for where the arduino tools are located
     ARDUINO_TOOLS = os.environ.get( 'ARDUINO_TOOLS' )
     if ( ARDUINO_TOOLS == None ):
-        print "The environment variable - ARDUINO_TOOLS - is NOT set."
+        print("The environment variable - ARDUINO_TOOLS - is NOT set.")
         sys.exit(1)
 
     # Default tool stuff
@@ -88,7 +90,7 @@ def run( argv ):
     if ( args['<hexfile>'] ):
         hexfile = args['<hexfile>'] 
     if ( hexfile == None ):
-        print "No HEX file was specified OR multiple HEX files exist in the default directory"
+        print("No HEX file was specified OR multiple HEX files exist in the default directory")
         sys.exit(1)
 
     # build options....
@@ -105,11 +107,11 @@ def run( argv ):
     printer = Printer()
     cmd = avrdude + ' ' + options
     if ( args['-v'] ):
-        print cmd
+        print(cmd)
     if (utils.run_shell(printer, cmd, False) ):
-        print
-        print '** A FAILURE occurred while attempting to run avrdude'
-        print
+        print()
+        print('** A FAILURE occurred while attempting to run avrdude')
+        print()
         sys.exit(1)
 
     

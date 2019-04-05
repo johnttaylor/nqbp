@@ -94,13 +94,16 @@ def run_shell2( cmd, stdout=False, on_err_msg=None ):
     else:
         p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
 
-    r = p.communicate()
+    r  = p.communicate()
+    r0 = '' if r[0] == None else r[0].decode()
+    r1 = '' if r[1] == None else r[1].decode()
+
     if ( p.returncode != 0 and on_err_msg != None ):
-        print_verbose( "{} {}".format(r[0],r[1]) )
+        print_verbose( "{} {}".format(r0,r1) )
         exit(on_err_msg)
 
-    return (p.returncode, "{} {}".format(r[0],r[1]) )
-
+    return (p.returncode, "{} {}".format(r0,r1))
+    
 #-----------------------------------------------------------------------------
 def del_files_by_ext(dir, *exts): 
     """Delete file(s) from 'dir' based the passed file extensions

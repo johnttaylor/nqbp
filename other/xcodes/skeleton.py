@@ -21,8 +21,6 @@ Common Options:
 Notes:
         
 """
-from __future__ import absolute_import
-from __future__ import print_function
 from nqbplib.docopt.docopt import docopt
 from nqbplib import utils
 from other import utils2

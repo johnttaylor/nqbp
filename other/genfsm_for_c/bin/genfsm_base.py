@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #=============================================================================
 # Helper script (that does most of work) for generating FSM source code from
 # Cadifra FSM diagrams
@@ -17,8 +17,6 @@
 #=============================================================================
 
 #
-from __future__ import absolute_import
-from __future__ import print_function
 import sys   
 import os
 import subprocess

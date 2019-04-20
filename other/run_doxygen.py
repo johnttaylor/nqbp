@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 """
 This script runs 'doxygen' (to generate HTML documention of the package's
 header files) on the package and checks for warnings.  Colony's coding 
@@ -15,7 +15,7 @@ import subprocess
 
 
 #------------------------------------------------------------------------------
-print "Running doxygen..."     
+print("Running doxygen...")     
 
 # run doxygen
 cmd = "doxygen"
@@ -26,11 +26,11 @@ if ( p.returncode != 0 ):
 
 
 # check for errors
-if ( " warning: " in r[1] ):
-    print
-    print "*** Doxygen had one or more warnings! ***"
-    print
-    print r[1]
+if ( " warning: " in r[1].decode() ):
+    print()
+    print("*** Doxygen had one or more warnings! ***")
+    print()
+    print(r[1].decode() )
     exit(1)
     
-print "Completed without warnings or errors."
+print("Completed without warnings or errors.")

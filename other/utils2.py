@@ -58,7 +58,9 @@ def set_pkg_and_wrkspace_roots():
 def run_shell( cmd ):
     p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
     r = p.communicate()
-    return (p.returncode, r)
+    r0 = '' if r[0] == None else r[0].decode()
+    r1 = '' if r[1] == None else r[1].decode()
+    return (p.returncode, "{} {}".format(r0,r1))
 
 
     
@@ -73,12 +75,12 @@ def get_relative_subtree( root, subtree_dir ):
 ###
 def verbose( cmd, output, args ):
     if ( args['-v'] ):
-        print cmd
+        print(cmd)
         print_shell_output( output )
     
 
 ### 
 def print_shell_output( output ):
     for l in output:
-        print l
+        print(l)
         

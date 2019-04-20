@@ -29,7 +29,7 @@ import os, sys
 
 #---------------------------------------------------------------------------------------------------------
 def display_summary():
-    print "{:<13}{}".format( 'skeleton', 'Generate skeleton C++ header/cpp files' )
+    print("{:<13}{}".format( 'skeleton', 'Generate skeleton C++ header/cpp files' ))
     
 
 #------------------------------------------------------------------------------

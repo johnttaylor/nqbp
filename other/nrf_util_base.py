@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 """
  
 nrf-util is a python wrapper to invoke the nrfutil utility
@@ -42,7 +42,7 @@ class Printer:
         pass
 
     def output(self,line):
-        print line
+        print(line)
 
 
 #------------------------------------------------------------------------------
@@ -68,15 +68,15 @@ def run( argv ):
     # Get environment variable for where the arduino tools are located
     ARDUINO_TOOLS = os.environ.get( 'ARDUINO_TOOLS' )
     if ( ARDUINO_TOOLS == None ):
-        print "The environment variable - ARDUINO_TOOLS - is NOT set."
+        print("The environment variable - ARDUINO_TOOLS - is NOT set.")
         sys.exit(1)
     ARDUINO_BSP_VER = os.environ.get( 'ARDUINO_BSP_VER' )
     if ( ARDUINO_BSP_VER == None ):
-        print "The environment variable - ARDUINO_BSP_VER - is NOT set."
+        print("The environment variable - ARDUINO_BSP_VER - is NOT set.")
         sys.exit(1)
     ARDUINO_NRF_UTIL_VER = os.environ.get( 'ARDUINO_NRF_UTIL_VER' )
     if ( ARDUINO_NRF_UTIL_VER == None ):
-        print "The environment variable - ARDUINO_NRF_UTIL_VER - is NOT set."
+        print("The environment variable - ARDUINO_NRF_UTIL_VER - is NOT set.")
         sys.exit(1)
 
     # Default tool stuff
@@ -87,7 +87,7 @@ def run( argv ):
     if ( args['<zipfile>'] ):
         zipfile = args['<zipfile>'] 
     if ( zipfile == None ):
-        print "No ZIP file was specified OR multiple ZIP files exist in the default directory"
+        print("No ZIP file was specified OR multiple ZIP files exist in the default directory")
         sys.exit(1)
 
     # build options....
@@ -105,11 +105,11 @@ def run( argv ):
     printer = Printer()
     cmd = nrfutil + ' ' + options
     if ( args['-v'] ):
-        print cmd
+        print(cmd)
     if (utils.run_shell(printer, cmd, False) ):
-        print
-        print '** A FAILURE occurred while attempting to run nrfutil'
-        print
+        print()
+        print('** A FAILURE occurred while attempting to run nrfutil')
+        print()
         sys.exit(1)
 
     

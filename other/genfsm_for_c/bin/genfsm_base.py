@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #=============================================================================
 # Helper script (that does most of work) for generating FSM source code from
 # Cadifra FSM diagrams
@@ -63,7 +63,7 @@ import sys
 # Parse command line
 def run( argv ):
 
-    print argv
+    print(argv)
     
     # Process command line args...
     args = docopt(usage, version="0.0.1" )
@@ -89,7 +89,7 @@ def run( argv ):
     cmd = standardize_dir_sep( cmd )
   
     # Invoke Sinelabore command
-    print cmd
+    print(cmd)
     p = subprocess.Popen( cmd, shell=True )
     r = p.communicate()
     if ( p.returncode != 0 ):

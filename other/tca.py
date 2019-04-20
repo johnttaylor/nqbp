@@ -1,6 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Invokes NQBP's tca_base.py script.  To run 'TCA' copy this file to your build directory and the execute it."""
 
+from __future__ import absolute_import
 import os
 import sys
 

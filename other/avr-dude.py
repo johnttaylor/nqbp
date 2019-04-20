@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Invokes NQBP's avr_dude_base.py script.  Place 'avr-dude.py' in your current directory or in your command path
 """
 

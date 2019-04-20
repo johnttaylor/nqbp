@@ -1,4 +1,33 @@
-"""Base toolchain functions and classes"""
+#!/usr/bin/python3
+"""Base toolchain functions and classes
+
+Magic Symbols
+--------------------
+ME_CC_BASE_FILENAME - A toolchain can use the text symbol: ME_CC_BASE_FILENAME
+                      as a place holder for the file currently being built.  For
+                      Example the following compiler option will generate a list
+                      file with the base name the same as the C file being
+                      compiled.
+
+                      self._base_release.cflags = self._base_release.cflags + '-Wa,-alhs=ME_CC_BASE_FILENAME.lst '
+
+_BUILT_DIR_         - The build fields .firstobjs and .lastobjs, can be set (in
+                      mytoolchain.py file) to the text symbol - _BUILT_DIR.aaaa
+                      where 'aaaa' is a directory (as specified in libdirs.b).  
+                      The symbol will be replaced at link time to the list of 
+                      objects files in from the 'aaaaa' directory.  The list of 
+                      objects files will be 'correct' with respect to any 'source list' 
+                      specified in the libdirs.b for the 'aaaa' directory.  For 
+                      example the line below will expand to the list of all of 
+                      the object files in the src\Cpl\Container\_0test directory
+
+                      base_release.firstobjs = _BUILD_DIR_.src\Cpl\Container\_0test 
+                      
+                      Note: This functionality is required because the WINDOZE 
+                            command shell does NOT process wildcards like a 
+                            *nix shell.  
+
+"""
 
 #
 import logging
@@ -9,16 +38,16 @@ import sys
 import subprocess
 
 #
-import utils
+from . import utils
 
 # Globals
-from my_globals import NQBP_WORK_ROOT
-from my_globals import NQBP_PKG_ROOT
-from my_globals import NQBP_TEMP_EXT
-from my_globals import NQBP_VERSION
-from my_globals import NQBP_PRJ_DIR
-from my_globals import NQBP_WRKPKGS_DIRNAME
-from my_globals import NQBP_PUBLICAPI_DIRNAME
+from .my_globals import NQBP_WORK_ROOT
+from .my_globals import NQBP_PKG_ROOT
+from .my_globals import NQBP_TEMP_EXT
+from .my_globals import NQBP_VERSION
+from .my_globals import NQBP_PRJ_DIR
+from .my_globals import NQBP_WRKPKGS_DIRNAME
+from .my_globals import NQBP_PUBLICAPI_DIRNAME
 
 
 # Structure for holding build-variant specific options
@@ -232,7 +261,7 @@ class ToolChain:
     
     #--------------------------------------------------------------------------
     def get_variants(self):
-        return self._bld_variants.keys()
+        return list(self._bld_variants.keys())
             
     #--------------------------------------------------------------------------
     def get_ccname(self):
@@ -258,7 +287,7 @@ class ToolChain:
         
         # Select/set build variant
         self._bld = bld_var
-        if ( not self._bld_variants.has_key(bld_var) ):
+        if ( bld_var not in self._bld_variants ):
             self._printer.output( 'ERROR: Invalid variant ({}) selected'.format( bld_var ) )
             sys.exit(1)
             
@@ -277,7 +306,12 @@ class ToolChain:
         if ( arguments['--def3'] != None ):
             c_self_defines   += self._format_custom_c_define( arguments['--def3'] )
             asm_self_defines += self._format_custom_asm_define( arguments['--def3'] )
-
+        if ( arguments['--def4'] != None ):
+            c_self_defines   += self._format_custom_c_define( arguments['--def3'] )
+            asm_self_defines += self._format_custom_asm_define( arguments['--def4'] )
+        if ( arguments['--def5'] != None ):
+            c_self_defines   += self._format_custom_c_define( arguments['--def5'] )
+            asm_self_defines += self._format_custom_asm_define( arguments['--def5'] )
 
         # Construct build options
         null           = BuildValues()
@@ -302,7 +336,7 @@ class ToolChain:
             self._printer.debug( "# Final 'all_opts'" )
             self._dump_options(  self._all_opts, True )
             
-
+    
     #--------------------------------------------------------------------------
     def ar( self, arguments ):
         # NOTE: Assumes archive is to be built in the current working dir
@@ -393,7 +427,24 @@ class ToolChain:
 
 
     #--------------------------------------------------------------------------
-    def link( self, arguments, inf, local_external_setting, variant ):
+    #
+    def pre_link(self, arguments, inf, local_external_setting, variant ):
+        self._printer.debug( '# ENTER: base.ToolChain.pre_link' )
+        
+        # Set my command options to construct an 'all' libdirs list
+        libdirs = []
+        myargs  = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False }
+        utils.create_working_libdirs( self._printer, inf, myargs, libdirs, local_external_setting, variant )  
+        
+        # Expand any _BUILD_DIR.aaaa symbols for .firstobjs and .lastobjs
+        self._all_opts.firstobjs = utils.replace_build_dir_symbols(self,  self._all_opts.firstobjs, libdirs, ".." )
+        self._all_opts.lastobjs  = utils.replace_build_dir_symbols(self,  self._all_opts.lastobjs, libdirs, ".." )
+        
+        # Return the 'all' libdirs list
+        return libdirs
+
+    #
+    def link( self, arguments, libdirs, local_external_setting, variant ):
 
         # Output Progress...
         self._printer.output( "=====================" )
@@ -404,11 +455,6 @@ class ToolChain:
         utils.create_subdirectory( self._printer, '.', vardir )
         utils.push_dir( vardir )
         
-        # Set my command options to construct an 'all' libdirs list
-        libdirs = []
-        myargs  = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False }
-        utils.create_working_libdirs( self._printer, inf, myargs, libdirs, local_external_setting, variant )  
-
         # construct link command
         libs = self._build_library_list( libdirs )
         startgroup = self._linker_libgroup_start if libs != '' else ''
@@ -467,14 +513,15 @@ class ToolChain:
         result = ''
         for pair in libs:
             l,f  = pair
-            
+            dirname = l[0]
+
             path = '..' + os.sep
             if ( f == 'xpkg' ):
                 path += NQBP_WRKPKGS_DIRNAME() + os.sep
             elif ( f == 'absolute' ):
                 path += "__abs" + os.sep
                 
-            lname   = path + l + os.sep + self._ar_library_name    
+            lname   = path + dirname + os.sep + self._ar_library_name    
             lname   = lname.replace(':','',1)
             result += self._link_lib_prefix + lname + ' '
             

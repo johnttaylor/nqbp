@@ -48,7 +48,7 @@ class ToolChain( base.ToolChain ):
     #--------------------------------------------------------------------------
     def validate_cc( self ):
        t = base.ToolChain.validate_cc(self)
-       if ( not 'i686-w64-mingw32' in t[1] ):
+       if ( not 'i686-w64-mingw32' in t[1].decode() ):
            utils.output( "ERROR: Incorrect build of GCC (Target does NOT equal 'mingw32')" )
            sys.exit(1)
 

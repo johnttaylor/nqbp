@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 """
  
 Xcode generates source code template/skeleton files
@@ -19,6 +19,8 @@ Type 'xcode help <template>' for help on a specific template.
 
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import os
 from subprocess import call
@@ -46,7 +48,7 @@ def load_command( name ):
 #------------------------------------------------------------------------------
 def display_command_list():
     import pkgutil
-    import xcodes
+    from . import xcodes
     p = xcodes
     
     print( ' ' )

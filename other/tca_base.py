@@ -7,11 +7,13 @@ import sys
 import os
 import subprocess
 import fnmatch
+import platform
 #
 from nqbplib.docopt.docopt import docopt
+from nqbplib import utils
 
 
-# 
+#
 usage = """ 
 (T)est (C)overage (A)nalyzer
 ===============================================================================
@@ -44,6 +46,25 @@ Options:
   -h, --help       Display command help.
         
          
+Examples:
+    # Generates the default code coverage report
+    tca.py rpt     
+    
+    # Generates the branch coverage report
+    tca.py rpt --branches
+    
+    # Generates XML formatted output
+    tca.py rpt --xml-pretty
+    
+    # Generates detailed HTML output
+    tca.py rpt --html --html-details -o coverage.html
+    
+    # Gets the list of 'gcovr' of command line options
+    tca.py rpt -h
+    
+    # Filters the output to a single component directory
+    tca.py rpt -f .*Cpl/Container.*
+
 NOTES:
     o TCA assumes you used the gcc compiler to create you executable.
     o When compiling you must use the following options:
@@ -59,124 +80,132 @@ NOTES:
 
 #------------------------------------------------------------------------------
 # Parse command line
-def run( argv ):
+def run(argv):
     # Process command line args...
-    args = docopt(usage, version="0.0.1", options_first=True )
+    args = docopt(usage, version="0.0.1", options_first=True)
     
     # get the package root
-    pkg = run_shell( 'orc.py --qry-pkg' )[1].strip()
+    pkg = run_shell('orc.py --qry-pkg')[1].strip()
     
+    # setup excludes
+    excludes = '--exclude=.*_0test.*  --exclude=^tests*'   
+
     # Generate summary
-    if ( args['rpt'] ):
-        here = os.path.dirname(__file__)
-        cmd  = 'python {}{}gcovr -r {} --object-directory . {}'.format( here, os.sep, pkg, ' '.join(args['<args>']) if args['<args>'] else '' ) 
-        if ( args['<args>'] ):
+    if (args['rpt']):
+        python = 'python'
+        if ( platform.system() == 'Windows' ):
+            python = 'py -3'
+
+        cmd  = '{} -m gcovr {} -r {}{}src --object-directory . {}'.format(python, excludes, pkg, os.sep, ' '.join(args['<args>']) if args['<args>'] else '') 
+        if (args['<args>']):
             first = args['<args>'][0]
-            if ( first == '-h' or first == '--help' ):
-                cmd  = 'python {}{}gcovr --help'.format( here, os.sep ) 
-        run_shell( cmd, True )
+            if (first == '-h' or first == '--help'):
+                cmd = '{} -m gcovr --help'.format(python)
+        run_shell(cmd, True)
 
     # Generate human readable .gcov files
-    elif ( args['-d'] ):
+    elif(args['-d']):
         cmd = 'gcov ' + args['-d']
-        run_shell( cmd )
+        run_shell(cmd)
         
     # Search file
-    elif ( args['-m'] ):
+    elif (args['-m']):
         search( os.getcwd(), args['-m'], args['-w'] )
         
     # Clean ALL
-    elif ( args['--clean'] ):
+    elif (args['--clean']):
         clean( os.path.join(pkg,"projects"), ['*.gcov', '*.gcda', '*.gcno'] )
-        clean( os.path.join(pkg,"tests"), ['*.gcov', '*.gcda', '*.gcno'] )
+        clean(os.path.join(pkg,"tests"), ['*.gcov', '*.gcda', '*.gcno'])
         
     # Clean just .gcov files
-    elif ( args['-c'] ):
+    elif (args['-c']):
         clean( os.getcwd(), ['*.gcov'] )
         
 #------------------------------------------------------------------------------
-def run_shell( cmd, verbose_flag=False, on_err_msg=None ):
-    if ( verbose_flag ):
-        p = subprocess.Popen( cmd, shell=True )
+def run_shell(cmd, verbose_flag=False, on_err_msg=None):
+    if (verbose_flag):
+        p = subprocess.Popen(cmd, shell=True)
     else:
-        p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     r = p.communicate()
-    if ( p.returncode != 0 and on_err_msg != None ):
+    if (p.returncode != 0 and on_err_msg != None):
         exit(on_err_msg)
     
-    return (p.returncode, "{} {}".format(r[0],r[1]) )
+    r0 = '' if r[0] == None else r[0].decode()
+    r1 = '' if r[1] == None else r[1].decode()
+    return (p.returncode, "{} {}".format(r0,r1))
 
 
 #------------------------------------------------------------------------------
-def clean( root, filters ):
-    for root, dirs, files in os.walk( root ):
+def clean(root, filters):
+    for root, dirs, files in os.walk(root):
         for x in filters:
             for f in fnmatch.filter(files,x):
                 os.remove(os.path.join(root,f))
 
 #------------------------------------------------------------------------------
-def search( path, filter, wsize ):
+def search(path, filter, wsize):
     for file in os.listdir(path):
-        if ( fnmatch.fnmatch(file,filter) ):
-            if ( os.path.isfile(file) ):
-                print
-                print "FILE: {}".format(file)
-                print "-"*80
-                _searchfile( file, wsize )
+        if (fnmatch.fnmatch(file,filter)):
+            if (os.path.isfile(file)):
+                print()
+                print("FILE: {}".format(file))
+                print("-" * 80)
+                _searchfile(file, wsize)
                 
                 
-def _searchfile( file, window_size ):
+def _searchfile(file, window_size):
     window = []
-    wsize  = int(window_size)
+    wsize = int(window_size)
     with open(file) as fd:
 
-        # Housekeeping 
-        pre_marker  = True
-        pre_count   = 0
+        # Housekeeping
+        pre_marker = True
+        pre_count = 0
         post_marker = False
-        post_count  = 0
-        marker      = False
+        post_count = 0
+        marker = False
 
         for line in fd:
             # Test for marker
-            if ( line.strip().startswith('####') ):
-                window.append( line )
-                pre_marker  = False
-                pre_count   = 0
+            if (line.strip().startswith('####')):
+                window.append(line)
+                pre_marker = False
+                pre_count = 0
                 post_marker = True                                 
-                post_count  = 0
+                post_count = 0
 
             # Manage window pre-window
-            elif ( pre_marker ):
+            elif (pre_marker):
                 pre_count = pre_count + 1
-                window.append( line )
-                if ( pre_count > wsize ):
+                window.append(line)
+                if (pre_count > wsize):
                     del window[0]
 
             # Manage window post-window
-            elif ( post_marker ):
+            elif (post_marker):
                 post_count = post_count + 1
-                window.append( line )
-                if ( post_count >= wsize ):
-                    _print_window( window )
+                window.append(line)
+                if (post_count >= wsize):
+                    _print_window(window)
                     post_marker = False
-                    pre_marker  = True
-                    pre_count   = len(window)
-                    delta       = pre_count - wsize - 1
+                    pre_marker = True
+                    pre_count = len(window)
+                    delta = pre_count - wsize - 1
                     for x in range(delta):
                         del window[0]
                         pre_count = pre_count - 1
-                    while( pre_count > wsize ):
+                    while(pre_count > wsize):
                         del window[0]
                         pre_count = pre_count - 1
             
         # dump the window if file end before the window did
-        if ( post_marker ):
-            _print_window( window )
+        if (post_marker):
+            _print_window(window)
         
         
-def _print_window( lines ):
+def _print_window(lines):
     for l in lines:
-        print l,
-    print    
+        print(l, end=' ')
+    print()    

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 #=============================================================================
 #
 import sys   
@@ -94,7 +94,7 @@ def run( argv, default_local_path, default_global_path, default_root_path, use_o
 
     # Debug
     if ( args['-g'] ):
-        print args, '\n'
+        print(args, '\n')
     
     # Set default for --outcast option
     if ( use_outcast ):
@@ -106,7 +106,7 @@ def run( argv, default_local_path, default_global_path, default_root_path, use_o
 
     # Print guide
     if ( args['--guide'] ):
-        print guide
+        print(guide)
         sys.exit()
 
     # Calculate path for _RELPATH token
@@ -143,18 +143,18 @@ def run( argv, default_local_path, default_global_path, default_root_path, use_o
 def expand_content( header, content, smap, iters, outfd, args ):
     # Verbose
     if ( args['-v'] ):
-        print "{}Expanding: {}, iters={} ...".format( iters.get_verbose_indent(), header.get_fname(), iters.get_max_iter_count() )
+        print("{}Expanding: {}, iters={} ...".format( iters.get_verbose_indent(), header.get_fname(), iters.get_max_iter_count() ))
 
     # Debug
     if ( args['-g'] ):
-        print "{}{}".format( iters.get_verbose_indent(), header )
-        print "{}{}".format( iters.get_verbose_indent(), smap )
+        print("{}{}".format( iters.get_verbose_indent(), header ))
+        print("{}{}".format( iters.get_verbose_indent(), smap ))
 
     loop = True if iters.get_max_iter_count() > 0 else False
     while( loop ):
         # Verbose
         if ( args['-v'] ):
-            print "{}  Iteration={}, iter_value={} ...".format( iters.get_verbose_indent(), iters.get_iter_number(), iters.get_iter_value() )
+            print("{}  Iteration={}, iter_value={} ...".format( iters.get_verbose_indent(), iters.get_iter_number(), iters.get_iter_value() ))
         
         lnum = 0
         skip = 0
@@ -645,7 +645,7 @@ def do_scmd_iterate( max_iter_count, scmd_string, parent_map, header, lnum ):
 
 ### 
 def convert_to_number( parm, parent_map, header, lnum ):
-    print "parm=[{}]".format( parm )
+    print("parm=[{}]".format( parm ))
     if ( parm.startswith('$') and parm.endswith('$') ):
         # Get map index for token ID
         idx = header.find_token( parm[1:-1] )
@@ -797,16 +797,16 @@ def open_template_file( fname, args, iters ):
     lpath = process_path_argument( args['--local'], args )
     gpath = process_path_argument( args['--global'], args )
     if ( args['-g'] ):
-        print "{}Opening template file= {}...".format( iters.get_verbose_indent(), fname )
-        print "{}  search path: cwd      = {}".format( iters.get_verbose_indent(), os.getcwd() )
-        print "{}  search path: --local  = {}".format( iters.get_verbose_indent(), lpath )
-        print "{}  search path: --global = {}".format( iters.get_verbose_indent(), gpath )
+        print("{}Opening template file= {}...".format( iters.get_verbose_indent(), fname ))
+        print("{}  search path: cwd      = {}".format( iters.get_verbose_indent(), os.getcwd() ))
+        print("{}  search path: --local  = {}".format( iters.get_verbose_indent(), lpath ))
+        print("{}  search path: --global = {}".format( iters.get_verbose_indent(), gpath ))
 
     # Search CWD
     try:
         inf = open( fname )
         if ( args['-g'] ):
-            print "{}  -->opened from cwd.".format( iters.get_verbose_indent() )
+            print("{}  -->opened from cwd.".format( iters.get_verbose_indent() ))
 
         return inf, fname;
     except EnvironmentError:
@@ -817,7 +817,7 @@ def open_template_file( fname, args, iters ):
         f = os.path.join( lpath, fname )
         inf = open( f )
         if ( args['-g'] ):
-            print "{}  -->opened from --local".format( iters.get_verbose_indent() )
+            print("{}  -->opened from --local".format( iters.get_verbose_indent() ))
 
         return inf, f
     except EnvironmentError:
@@ -828,7 +828,7 @@ def open_template_file( fname, args, iters ):
         f = os.path.join( gpath, fname )
         inf = open( f )
         if ( args['-g'] ):
-            print "{}  -->opened from --global.".format( iters.get_verbose_indent() )
+            print("{}  -->opened from --global.".format( iters.get_verbose_indent() ))
 
         return inf, f
     except EnvironmentError:
@@ -1057,7 +1057,7 @@ def compute_relative_path( args, default_root_path ):
     
     # Debug
     if ( args['-g'] ):
-        print "_RELPATH={}".format( args['-r'] )
+        print("_RELPATH={}".format( args['-r'] ))
 
 
 

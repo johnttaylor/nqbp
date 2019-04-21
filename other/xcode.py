@@ -1,7 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Invokes NQBP's xcode_base.py script.  Place 'xcode.py' in your current directory or in your command path
 """
 
+from __future__ import absolute_import
 import os
 import sys
 

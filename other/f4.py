@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Invokes NQBP's f4_base.py script.  Place 'f4.py' in your current directory or in your command path
 """
 

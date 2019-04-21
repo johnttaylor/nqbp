@@ -34,7 +34,7 @@ import os, sys
 
 #---------------------------------------------------------------------------------------------------------
 def display_summary():
-    print "{:<13}{}".format( 'itcrequest', 'Generates Cpl::Itc Request (and Response) Messages' )
+    print(("{:<13}{}".format( 'itcrequest', 'Generates Cpl::Itc Request (and Response) Messages' )))
     
 
 #------------------------------------------------------------------------------

@@ -87,7 +87,7 @@ prjdir = os.path.dirname(os.path.abspath(__file__))
 
 
 # Select Module that contains the desired toolcahin
-from nqbplib.toolchains.windows.mingw.console_exe import ToolChain
+from nqbplib.toolchains.windows.mingw_w64.console_exe import ToolChain
 
 
 # Function that instantiates an instance of the toolchain

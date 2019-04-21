@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 #=============================================================================
 # Helper script (that does most of work) for generating FSM source code from
 # Cadifra FSM diagrams
@@ -23,7 +23,6 @@ import subprocess
 #
 from nqbplib.docopt.docopt import docopt
 from nqbplib import utils
-
 
 # 
 usage = """ 
@@ -57,6 +56,15 @@ NOTES:
       
 """
 
+copyright_header = """* This file is part of the Colony.Core Project.  The Colony.Core Project is an
+* open source project with a BSD type of licensing agreement.  See the license
+* agreement (license.txt) in the top/ directory or on the Internet at
+* http://integerfox.com/colony.core/license.txt
+*
+* Copyright (c) 2014-2019  John T. Taylor
+*
+* Redistributions of the source code must retain the above copyright notice."""
+
 #
 import subprocess
 import re
@@ -64,7 +72,8 @@ import sys
 
 #------------------------------------------------------------------------------
 # Parse command line
-def run( argv ):
+def run( argv, copyright=None ):
+    global copyright_header
 
     # Process command line args...
     args = docopt(usage, version="0.0.1" )
@@ -74,6 +83,10 @@ def run( argv ):
     if ( sinpath == None ):
         exit( "ERROR: The SINELABORE_PATH environment variable is not set." )
     
+    # Set copyright header (if specified)
+    if ( copyright != None ):
+        copyright_header = copyright
+
     # Convert namespace arg to list
     names = args['<namespaces>'].split('::')
     
@@ -107,7 +120,7 @@ def run( argv ):
     cmd = utils.standardize_dir_sep( cmd )
   
     # Invoke Sinelabore command
-    print cmd
+    print(cmd)
     p = subprocess.Popen( cmd, shell=True )
     r = p.communicate()
     if ( p.returncode != 0 ):
@@ -121,7 +134,8 @@ def run( argv ):
     mangle_event_names( oldevt, eventList, fsm, ' ' )
     mangle_event_names( oldfsmcpp, eventList, fsm, '"', '0', '=' )
     mangle_event_names( oldtrace, eventList, fsm, '"' )
-      
+    cleanup_global_define( oldevt, fsm, names )
+
     # Generate Context/Base class
     actions, guards = getContextMethods( fsmdiag )
     generatedContextClass( base, names, getHeader(), actions, guards )
@@ -133,6 +147,8 @@ def run( argv ):
         
     # Post process the generated file(s) to work better with Doxygen
     cleanup_for_doxygen( fsm + ".h", args['<namespaces>'] + "::" + fsm )
+    cleanup_for_doxygen( oldtrace )
+    cleanup_for_doxygen( oldevt )
       
     
     # Post process the generated file(s) 
@@ -236,19 +252,49 @@ def fix_indexes( line, prefix ):
         
     
 #
-def cleanup_for_doxygen( headerfile, classname ):
+def cleanup_for_doxygen( headerfile, classname='<not-used>' ):
     tmpfile = headerfile + ".tmp"
+    skip_state = 0
     with open( headerfile ) as inf:
         with open( tmpfile, "w") as outf:  
             for line in inf:
+                if ( line.startswith( "namespace") and skip_state == 0 ):
+                    outf.write( "#ifndef DOXYGEN_WILL_SKIP_THIS\n\n");
+                    outf.write( line );
+                    skip_state += 1
+                    continue
+                if ( line.startswith( "#endif") and skip_state == 1):
+                    outf.write( "#endif // !DOXYGEN_WILL_SKIP_THIS\n\n");
+                    outf.write( line );
+                    skip_state += 1
+                    continue
+
                 if ( line.find( 'Here is the graph that shows the state machine' ) == -1 ):
                     outf.write( line )
                 else:
-                    outf.write( "/** \class {}\nHere is the graph that shows the state machine this class implements\n\dot\n".format( classname ) )
+                    outf.write( "/** \class {}\n\nHere is the graph that shows the state machine this class implements\n\n\dot\n".format( classname ) )
+    
+    os.remove( headerfile )
+    os.rename( tmpfile, headerfile )
+ 
+#
+def cleanup_global_define( headerfile, fsm_name, namespaces ):
+    tmpfile = headerfile + ".tmp"
+    skip_state = 0
+    with open( headerfile ) as inf:
+        with open( tmpfile, "w") as outf:  
+            for line in inf:
+
+                if ( line.startswith( '#define InnermostStates ' )-1 ):
+                    outf.write( line )
+                else:
+                    tokens = line.split()
+                    outf.write( '#define {}{}_InnermostStates {};\n'.format(flatten_namespaces(namespaces), fsm_name, tokens[2]))
     
     os.remove( headerfile )
     os.rename( tmpfile, headerfile )
                      
+
 #
 def cleanup_includes( headerfile, namespaces, oldfsm, newfsm, oldevt, newevt, base ):
     tmpfile = headerfile + ".tmp"
@@ -308,6 +354,7 @@ def cleanup_trace( cppfile, namespaces, base, oldfsm, old_trace_headerfile, new_
                     outf.write( '\n' )
                     outf.write( '#include "Cpl/System/Trace.h"\n' )
                     outf.write( '\n' )
+                    outf.write( '/// Trace Section\n' )
                     outf.write( '#define SECT_ "{}::{}"\n'.format( "::".join(namespaces), base ) )
                     outf.write( '\n' )
                 elif ( line.find( trace_fn ) != -1 ):
@@ -446,7 +493,7 @@ def generateEventClass( class_name, namespaces,  parent_class, parent_header, de
         f.write( "/// Event Queue for FSM events.\n" )
         f.write( "class {}: public {}, public Cpl::Container::RingBuffer<{}_EVENT_T>\n".format( class_name, parent_class, macroname ) )
         f.write( "{\n" )
-        f.write( "private:\n" )
+        f.write( "protected:\n" )
         f.write( "    /// Memory for Event queue\n" )
         f.write( "    {}_EVENT_T m_eventQueMemory[{}];\n".format( macroname, depth) )
         f.write( "\n")
@@ -500,10 +547,12 @@ def generateEventClass( class_name, namespaces,  parent_class, parent_header, de
         f.write( "        m_processingFsmEvent = true;\n" )
         f.write( "        while( remove( msg ) )\n" )
         f.write( "            {\n" )
+        f.write( '            CPL_SYSTEM_TRACE_MSG( SECT_, ("Processing event:= %s, current state=%s ...", getNameByEvent(msg), getNameByState(getInnermostActiveState())) );\n' )
         f.write( "            if ( processEvent(msg) == 0 )\n" )
         f.write( "                {\n" )
-        f.write( '                CPL_SYSTEM_TRACE_MSG( SECT_, ("Event IGNORED:= %s", getNameByEvent(msg)) );\n' )
+        f.write( '                CPL_SYSTEM_TRACE_MSG( SECT_, ("  Event IGNORED:= %s", getNameByEvent(msg)) );\n' )
         f.write( "                }\n" )
+        f.write( '            CPL_SYSTEM_TRACE_MSG( SECT_, ("Event Completed:=  %s, end state=%s", getNameByEvent(msg), getNameByState(getInnermostActiveState())) );\n' )
         f.write( "            }\n" )
         f.write( "\n" )
         f.write( "        m_processingFsmEvent = false;\n" )
@@ -610,8 +659,9 @@ SeparateStateClasses=no
 
 #------------------------------------------------------------------------------
 def getHeader():
-    return  '/*-----------------------------------------------------------------------------\n* Blah..\n*----------------------------------------------------------------------------*/\n/** @file */\n\n'
+    return  '/*-----------------------------------------------------------------------------\n' + copyright_header + '\n*----------------------------------------------------------------------------*/\n/** @file */\n\n'
 
 def getHeaderCfg():
-    return r'/*-----------------------------------------------------------------------------\n* Blah..\n*----------------------------------------------------------------------------*/\n/** @file */\n\n'
+    text = copyright_header.replace('\n', r'\n')
+    return r'/*-----------------------------------------------------------------------------\n' + text + r'\n*----------------------------------------------------------------------------*/\n/** @file */\n\n'
 

@@ -63,7 +63,12 @@ class ToolChain( base.ToolChain ):
         #       - Project directory
         #       - Workspace Public Include directory
         #
-        self._base_release.cflags    = '/FS /nologo  /D "_CRT_SECURE_NO_WARNINGS" /D "_CONSOLE" /D "_MBCS" /Gm /Zi /FD /D "WIN32" /D "WIN32_LEAN_AND_MEAN" /c /D "BUILD_TIME_UTC={:d}"'.format(self._build_time_utc)
+
+        # Orignal VC12 flags
+        # self._base_release.cflags    = '/FS /nologo  /D "_CRT_SECURE_NO_WARNINGS" /D "_CONSOLE" /D "_MBCS" /Gm /Zi /FD /D "WIN32" /D "WIN32_LEAN_AND_MEAN" /c /D "BUILD_TIME_UTC={:d}"'.format(self._build_time_utc)
+
+        # Flags compatible with Visual Studio 19
+        self._base_release.cflags    = '/FS /nologo  /D "_CRT_SECURE_NO_WARNINGS" /D "_CONSOLE" /D "_MBCS" /Zi /FD /D "WIN32" /D "WIN32_LEAN_AND_MEAN" /c /D "BUILD_TIME_UTC={:d}"'.format(self._build_time_utc)
         self._base_release.linkflags = '/nologo /subsystem:console /pdb:{}.pdb /machine:X86'.format( os.path.splitext(exename)[0] )
         self._base_release.linklibs  = '' #kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib'
         

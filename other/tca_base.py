@@ -88,7 +88,7 @@ def run(argv):
     pkg = run_shell('orc.py --qry-pkg')[1].strip()
     
     # setup excludes
-    excludes = '--exclude=.*_0test.*  --exclude=^tests*'   
+    excludes = '--exclude=.*_0test.*  --exclude=^tests* --exclude=.*src.Catch.precompiled.*'   
 
     # Generate summary
     if (args['rpt']):

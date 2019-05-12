@@ -50,10 +50,12 @@ Usage: nqbp [options] [-b variant]
        nqbp [options] [-b variant] -m [-d DIR | -f FILE]
 
 Arguments:
-  -b variant       Builds the speficied configuration/varinst instead of the 
+  -b variant       Builds the specified configuration/variant instead of the 
                    release build. What 'variants' are available is Toolchain 
                    specific. The default is variant is determined by the
                    mytoolchain.py script.
+  --try variant    Same as the '-b' option, except that if the variant does not
+                   exist - the script does not report a failure on exit.
   --bld-all        Builds all variants.  Does NOT build variants that start 
                    with a leading '_'.
   -d DIR           Compile ONLY the specified directory relative to the pkg 
@@ -147,6 +149,11 @@ def build( argv, toolchain ):
     logfile = os.path.join( os.getcwd(), 'make.log' )
     printer = Printer( multiprocessing.Lock(), logfile, start_new_file=True );
     toolchain.set_printer( printer )
+
+    # Does the specified variant exist
+    if ( arguments['--try'] != None and not arguments['--try'] in toolchain.get_variants() ):
+        printer.output( "Tried (and failed) to build a non-existent variant: {}".format(arguments['--try'] ))  
+        sys.exit()
 
     # Set default build variant 
     if ( not arguments['-b'] ):

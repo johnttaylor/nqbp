@@ -151,9 +151,14 @@ def build( argv, toolchain ):
     toolchain.set_printer( printer )
 
     # Does the specified variant exist
-    if ( arguments['--try'] != None and not arguments['--try'] in toolchain.get_variants() ):
-        printer.output( "Tried (and failed) to build a non-existent variant: {}".format(arguments['--try'] ))  
-        sys.exit()
+    if ( arguments['--try'] != None ):
+        if ( not arguments['--try'] in toolchain.get_variants() ):
+            printer.output( "Tried (and failed) to build a non-existent variant: {}".format(arguments['--try'] ))  
+            sys.exit()
+
+        # If the variant exists--> set build variant option
+        else:
+            arguments['-b'] =  arguments['--try']
 
     # Set default build variant 
     if ( not arguments['-b'] ):

@@ -87,8 +87,8 @@ def run(argv):
     # get the package root
     pkg = run_shell('orc.py --qry-pkg')[1].strip()
     
-    # setup excludes
-    excludes = '--exclude=.*_0test.*  --exclude=^tests* --exclude=.*src.Catch.precompiled.*'   
+    # setup excludes 
+    excludes = '--exclude=.*_0test.*  --exclude=^tests* --exclude=.*src.Catch.precompiled.* --exclude-unreachable-branches'   
 
     # Generate summary
     if (args['rpt']):
@@ -96,7 +96,7 @@ def run(argv):
         if ( platform.system() == 'Windows' ):
             python = 'py -3'
 
-        cmd  = '{} -m gcovr {} -r {}{}src --object-directory . {}'.format(python, excludes, pkg, os.sep, ' '.join(args['<args>']) if args['<args>'] else '') 
+        cmd  = '{} -m gcovr {} -j 4 -r {}{}src --object-directory . {}'.format(python, excludes, pkg, os.sep, ' '.join(args['<args>']) if args['<args>'] else '') 
         if (args['<args>']):
             first = args['<args>'][0]
             if (first == '-h' or first == '--help'):

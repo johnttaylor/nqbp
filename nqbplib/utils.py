@@ -169,7 +169,7 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
         if ( line.startswith('[') ):
             tokens = line[1:].split(']')
             if ( len(tokens) == 1 ):
-                printer.output( "ERROR: invalid [<variant>] prefix qualifer ({})".format( line ) )
+                printer.output( "ERROR: invalid [<variant>] prefix qualifier ({})".format( line ) )
                 sys.exit(1)
             if ( not _matches_variant(tokens[0], variant) ):
                 continue
@@ -346,6 +346,7 @@ def _get_marker_dir( from_fname, marker ):
     
     if ( result == None ):
         result = _test_for_top( result, marker )    
+    
     return result
     
 

@@ -22,3 +22,6 @@
 ~~~~~; 1531267593; Tue, 10 Jul 2018 18:06:33; PUBLISH; john; 1.2.0; main; OUTCAST_nqbp-main-1.2.0; Added additional build options (e.g --bldnum, --def1, etc.)
 
 
+~~~~~; 1558969587; Mon, 27 May 2019 09:06:27; PUBLISH; john; 2.0.0; main; OUTCAST_nqbp-main-2.0.0; Update to python 3.x (2.x is no longer supported)
+
+

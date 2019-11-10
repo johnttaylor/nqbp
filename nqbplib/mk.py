@@ -311,8 +311,8 @@ def do_build( printer, toolchain, arguments, variant ):
         if ( arguments['-m'] or arguments['-x'] or arguments['-p']  ):
             bld_prj = True
             
-        # fix race condition between the -l and -px options
-        if ( arguments['-x'] or arguments['-p'] ):
+        # fix race condition between the -l and -px|-s|-e options
+        if ( arguments['-x'] or arguments['-p'] or arguments['-s'] or arguments['-e'] ):
             bld_libs = True
 
     # Trap the clean options 

@@ -175,6 +175,8 @@ def get_events_names( ext_header_file ):
     events      = []
     with open( ext_header_file ) as inf:
         for line in inf:
+            line = line.lstrip()
+
             # Capture events
             if ( found_start ):
                 if ( line.find("_NO_MSG") == -1 ):

@@ -56,7 +56,7 @@ class ToolChain( base.ToolChain ):
 
 
         # 
-        common_flags                    = ' -Os -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16'
+        common_flags                    = ' -Os -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 --specs=nano.specs --specs=nosys.specs -u _printf_float '
         asm_and_compile_flags           = r' -D__FPU_PRESENT -DARM_MATH_CM4 -DARDUINO_ARCH_SAMD -D__SAMD51P20A__ -DARDUINO_GRAND_CENTRAL_M4 -DARDUINO_ARCH_SAMD -D__SAMD51P20A__ -DADAFRUIT_GRAND_CENTRAL_M4 -D__SAMD51__ -DUSB_VID=0x239A -DUSB_PID=0x8031 -DUSBCON -DUSB_CONFIG_POWER=100 "-DUSB_MANUFACTURER=\"Adafruit LLC\"" "-DUSB_PRODUCT=\"Adafruit Grand Central M4\"" '
         cpp_and_c_flags                 = ' -ffunction-sections -fdata-sections -nostdlib --param max-inline-insns-single=500'
         self._base_release.cflags       = self._base_release.cflags + common_flags + cpp_and_c_flags + asm_and_compile_flags + ' -g'
@@ -66,8 +66,8 @@ class ToolChain( base.ToolChain ):
 
         linker_search_path1          = os.path.join(samd_src_path, 'variants', 'grand_central_m4', "linker_scripts", "gcc" )
         linker_search_path2          = os.path.join(samd_src_path, 'variants', 'grand_central_m4' )
-        self._base_release.linklibs  = ' -Wl,--start-group -larm_cortexM4lf_math -lm -Wl,--end-group'
-        self._base_release.linkflags = common_flags + ' -Wl,--gc-sections -save-temps -L{} -L{} -Wl,-Map,{}.map  -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-section-align --specs=nano.specs --specs=nosys.specs -Wl,--cref -Wl,--check-sections'.format(linker_search_path1, linker_search_path2, exename)
+        self._base_release.linklibs  = ' -Wl,--start-group -larm_cortexM4lf_math -lm -lstdc++ -Wl,--end-group'
+        self._base_release.linkflags = common_flags + ' -Wl,--gc-sections -save-temps -L{} -L{} -Wl,-Map,{}.map  -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-section-align -Wl,--cref -Wl,--check-sections'.format(linker_search_path1, linker_search_path2, exename)
 
         self._ar_options             = 'rcs ' + self._ar_library_name
 

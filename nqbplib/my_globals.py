@@ -5,9 +5,11 @@ import os
 import logging
     
 # Globals
-_NQBP_WORK_ROOT = ''
-_NQBP_PRJ_DIR   = ''
-_NQBP_PKG_ROOT  = ''
+_NQBP_WORK_ROOT               = ''
+_NQBP_PRJ_DIR                 = ''
+_NQBP_PKG_ROOT                = ''
+_NQBP_PRE_PROCESS_SCRIPT      = None
+_NQBP_PRE_PROCESS_SCRIPT_ARGS = ''
 
 # Initialize globals
 OUT = logging.getLogger( 'nqbp' )
@@ -74,6 +76,19 @@ def NQBP_PKG_ROOT( newval=None ):
         _NQBP_PKG_ROOT = newval
     return _NQBP_PKG_ROOT
           
+#
+def NQBP_PRE_PROCESS_SCRIPT( newval=None ):
+    global _NQBP_PRE_PROCESS_SCRIPT
+    if ( newval != None ):
+        _NQBP_PRE_PROCESS_SCRIPT = newval
+    return _NQBP_PRE_PROCESS_SCRIPT          
+    
+#
+def NQBP_PRE_PROCESS_SCRIPT_ARGS( newval=None ):
+    global _NQBP_PRE_PROCESS_SCRIPT_ARGS
+    if ( newval != None ):
+        _NQBP_PRE_PROCESS_SCRIPT_ARGS = newval
+    return _NQBP_PRE_PROCESS_SCRIPT_ARGS          
     
     
     

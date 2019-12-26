@@ -37,6 +37,9 @@ from .my_globals import NQBP_PRJ_DIR
 from .my_globals import NQBP_NAME_LIBDIRS
 from .my_globals import NQBP_WRKPKGS_DIRNAME
 from .my_globals import NQBP_NAME_SOURCES
+from .my_globals import NQBP_PRE_PROCESS_SCRIPT
+from .my_globals import NQBP_PRE_PROCESS_SCRIPT_ARGS
+
 
 
 # 
@@ -393,6 +396,7 @@ def do_build( printer, toolchain, arguments, variant ):
             if ( arguments['-1'] or not arguments['--turbo'] ):
                 for d in build:
                     process_entry_build_directory( printer, arguments, toolchain, d[0], d[1], NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
+                    #process_entry_build_directory( printer, arguments, toolchain, d[0], d[1], NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME(), NQBP_PRJ_DIR(), NQBP_PRE_PROCESS_SCRIPT(), NQBP_PRE_PROCESS_SCRIPT_ARGS() )
 
             # Build multiple directories at the same time (limited to building at most 2 directories at a time)
             else:
@@ -414,6 +418,7 @@ def do_build( printer, toolchain, arguments, variant ):
                             index     += 1
                             busy      += 1
                             handles[i] = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() ))
+                            #handles[i] = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME(), NQBP_PRJ_DIR(), NQBP_PRE_PROCESS_SCRIPT(), NQBP_PRE_PROCESS_SCRIPT_ARGS() ))
                             handles[i].start()
 
                     # Poll for processes being done
@@ -457,6 +462,11 @@ def do_build( printer, toolchain, arguments, variant ):
 # Internal helper method to invoke building a single directory
 def process_entry_build_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname ):
     build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname )
+
+## Internal helper method to invoke building a single directory
+#def process_entry_build_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname, prj_dirname, preprocess_script, preprocess_args ):
+#    build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname, prj_dirname, preprocess_script, preprocess_args )
+
 
 #-----------------------------------------------------------------------------
 def pre_build_steps(printer, toolchain, arguments ):
@@ -614,6 +624,9 @@ def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root,
     # create object directory 
     d = utils.create_subdirectory( printer, os.getcwd(), dir[0] )
     utils.push_dir( d )
+
+    ## Check/run the PreProcessing script
+    #utils.run_pre_processing_script( printer, toolchain, srcpath, pkg_root, prj_dirname, preprocess_script, preprocess_args, verbose=arguments['-v'] )
 
     # Get/Construct the source file list and filter it (if needed) for the specified directory
     files = utils.get_and_filter_files_to_build( printer, toolchain, dir, srcpath, NQBP_NAME_SOURCES() )

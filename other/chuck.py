@@ -144,7 +144,7 @@ if __name__ == '__main__':
             cmd    = "{} {}".format( exe, arg_string )
             for n in range( int(args['--loop']) ):
                 print("= EXECUTING (#{}): {} {}".format( n+1, reldir, arg_string ))
-                result = utils.run_shell( cmd, args['-v'], "** ERROR: Test failed **" )
+                result = utils.run_shell2( cmd, args['-v'], "** ERROR: Test failed **" )
             utils.pop_dir
             
         print("= ALL Test(s) passed.")

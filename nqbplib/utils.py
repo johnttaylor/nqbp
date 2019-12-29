@@ -269,6 +269,20 @@ def find_libdir_entry( libdirs, dir_path, entry_type=None ):
 
     return (False, (dir_path, None, None), entry_type)
 
+#-----------------------------------------------------------------------------
+def run_pre_processing_script( printer, toolchain, current_dir, pkg_root, prj_dirname, preprocess_script, preprocess_args, build_clean="build", verbose=False ):
+    # Do nothing if feature not enabled
+    if ( preprocess_script != None ):
+        script = os.path.join( current_dir, preprocess_script )
+        
+        # Do nothing if no pre-process script is present
+        if ( os.path.isfile( script) ):
+            verbose_opt = "verbose" if verbose else "terse"
+            printer.output( "= Running Pre-Process script: " + preprocess_script )
+            cmd = "{} {} {} {} {} {} {}".format( script, build_clean, verbose_opt, pkg_root, prj_dirname, current_dir, preprocess_args)
+            printer.debug( "PreProcessing cmd= " + cmd )
+            run_shell2( cmd, stdout=True, on_err_msg="PreProcess Script Failed!")
+
 
 #-----------------------------------------------------------------------------
 def create_subdirectory( printer, pardir, new_subdir ):

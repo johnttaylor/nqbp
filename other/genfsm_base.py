@@ -175,6 +175,8 @@ def get_events_names( ext_header_file ):
     events      = []
     with open( ext_header_file ) as inf:
         for line in inf:
+            line = line.lstrip()
+
             # Capture events
             if ( found_start ):
                 if ( line.find("_NO_MSG") == -1 ):
@@ -453,13 +455,13 @@ def generatedContextClass( class_name, namespaces,  header, actions, guards ):
         f.write( "public:\n" )
         for a in actions:
             f.write( "    /// Action\n" )
-            f.write( "    virtual void {} throw() = 0;\n".format( a ) )
+            f.write( "    virtual void {} noexcept = 0;\n".format( a ) )
             f.write( "\n" )
         f.write( "\n" )
         f.write( "public:\n" )
         for g in guards:
             f.write( "    /// Guard\n" )
-            f.write( "    virtual bool {} throw() = 0;\n".format( g ) )
+            f.write( "    virtual bool {} noexcept = 0;\n".format( g ) )
             f.write( "\n" )
         f.write( "\n" )
         f.write( "public:\n" )
@@ -506,7 +508,7 @@ def generateEventClass( class_name, namespaces,  parent_class, parent_header, de
         f.write( "\n")
         f.write( "public:\n" )
         f.write( "    /// This method properly queues and process event messages\n" )
-        f.write( "    void generateEvent( {}_EVENT_T msg );\n".format( macroname ) )
+        f.write( "    virtual void generateEvent( {}_EVENT_T msg );\n".format( macroname ) )
         f.write( "};\n" )
         f.write( "\n" )
         f.write( "{}\n".format( end_nested_namespaces(namespaces) ) )

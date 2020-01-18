@@ -7,6 +7,8 @@ import sys
 import subprocess
 import pathlib
 import platform
+import collections
+
 
 # Globals
 from .my_globals import NQBP_WORK_ROOT
@@ -155,8 +157,9 @@ def replace_environ_variable( printer, line, marker='$' ):
 
 #-----------------------------------------------------------------------------
 def create_working_libdirs( printer, inf, arguments, libdirs, local_external_flag, variant, parent=None ):
-    
+
     # process all entries in the file        
+    libnames = []
     for line in inf:
         # 'normalize' the file entries
         line      = standardize_dir_sep( line.strip() )
@@ -259,6 +262,19 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
             pass
         else:
             libdirs.append( ((line, srctype, srclist), entry) )
+            libnames.append( line )
+
+
+    # Check for duplicates (Note: Duplicates can/will fail a build when performing parallel builds)
+    duplicates = False
+    d          = collections.Counter(libnames)
+    for k,v in d.items():
+        if ( v > 1 ):
+            duplicates = True
+            print( "Duplicate libdirs: ", k )
+    if ( duplicates ):
+        sys.exit( "ERROR Duplicate entries in libdirs.b" )
+
         
 # 
 def find_libdir_entry( libdirs, dir_path, entry_type=None ):

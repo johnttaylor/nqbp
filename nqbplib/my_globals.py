@@ -10,6 +10,7 @@ _NQBP_PRJ_DIR                 = ''
 _NQBP_PKG_ROOT                = ''
 _NQBP_PRE_PROCESS_SCRIPT      = None
 _NQBP_PRE_PROCESS_SCRIPT_ARGS = ''
+_NQBP_INITIAL_LIBDIRS         = []
 
 # Initialize globals
 OUT = logging.getLogger( 'nqbp' )
@@ -88,8 +89,7 @@ def NQBP_PRE_PROCESS_SCRIPT_ARGS( newval=None ):
     global _NQBP_PRE_PROCESS_SCRIPT_ARGS
     if ( newval != None ):
         _NQBP_PRE_PROCESS_SCRIPT_ARGS = newval
-    return _NQBP_PRE_PROCESS_SCRIPT_ARGS          
-    
-    
+    return _NQBP_PRE_PROCESS_SCRIPT_ARGS   
+
     
     

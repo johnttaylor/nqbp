@@ -34,11 +34,11 @@ from .my_globals import NQBP_PKG_ROOT
 from .my_globals import NQBP_TEMP_EXT
 from .my_globals import NQBP_VERSION
 from .my_globals import NQBP_PRJ_DIR
-from .my_globals import NQBP_NAME_LIBDIRS
 from .my_globals import NQBP_WRKPKGS_DIRNAME
 from .my_globals import NQBP_NAME_SOURCES
 from .my_globals import NQBP_PRE_PROCESS_SCRIPT
 from .my_globals import NQBP_PRE_PROCESS_SCRIPT_ARGS
+from .my_globals import NQBP_NAME_LIBDIRS
 
 
 
@@ -207,7 +207,7 @@ def build( argv, toolchain ):
 
 #-----------------------------------------------------------------------------
 def do_build( printer, toolchain, arguments, variant ):
-    # Set the build variant
+    # Set the build variant (Note: The method constructs the libdirs.b directory list)
     toolchain.pre_build( variant, arguments )
 
     # Output start banner
@@ -221,23 +221,16 @@ def do_build( printer, toolchain, arguments, variant ):
     printer.debug( '# NQBP_PKG_ROOT  = ' + NQBP_PKG_ROOT() )
     printer.debug( '# Project Dir    = ' + NQBP_PRJ_DIR() )
     
-    # Create/expand my working libdirs.b file
-    libdirs = []
-    inf = open( NQBP_NAME_LIBDIRS(), 'r' )
-    utils.create_working_libdirs( printer, inf, arguments, libdirs, 'local', variant )  
-    inf.close()
-    utils.list_libdirs( printer, libdirs )
-
     # Display my full set of directories
     if ( arguments['--qry-dirs'] ):
-        for dir, flag in libdirs:
+        for dir, flag in toolchain.libdirs:
             d,s,sl = dir
             printer.output( "{:<5}  {}".format( str(flag), d)  )
         return
 
     # Display my full set of directories with Source include/exclude info
     if ( arguments['--qry-dirs2'] ):
-        for dir, flag in libdirs:
+        for dir, flag in toolchain.libdirs:
             d,s,sl = dir
             if ( s == None or sl == None ):
                 printer.output( "{:<5}  {}".format( str(flag), d)  )
@@ -297,9 +290,9 @@ def do_build( printer, toolchain, arguments, variant ):
             entry    = "absolute"
 
         # Attempt to find the specified entry in the libdirs list to GET the 'source list' for the specified directory
-        found,dir,entry = utils.find_libdir_entry( libdirs, dir_path, entry_type=entry )
-        build_single_directory( printer, arguments, toolchain, dir, entry, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
-        
+        found,dir,entry = utils.find_libdir_entry( toolchain.libdirs, dir_path, entry_type=entry )
+        build_single_directory( printer, arguments, toolchain, dir, entry, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME(), NQBP_PRJ_DIR(), NQBP_PRE_PROCESS_SCRIPT(), NQBP_PRE_PROCESS_SCRIPT_ARGS() )
+
     # Trap compile just the project directory
     if ( arguments['-m'] ):
         clean_pkg = clean_ext = clean_abs = do_link = bld_libs = False
@@ -383,7 +376,7 @@ def do_build( printer, toolchain, arguments, variant ):
             printer.debug( '# stopdir    = ' + stopdir )
 
         # Apply the start/end filters
-        build,skip = filter_dir_list( printer, libdirs, startdir, stopdir )
+        build,skip = filter_dir_list( printer, toolchain.libdirs, startdir, stopdir )
 
         # Display directories being skipped
         if ( skip != None ): 
@@ -395,8 +388,7 @@ def do_build( printer, toolchain, arguments, variant ):
             # Build one directory at time
             if ( arguments['-1'] or not arguments['--turbo'] ):
                 for d in build:
-                    process_entry_build_directory( printer, arguments, toolchain, d[0], d[1], NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() )
-                    #process_entry_build_directory( printer, arguments, toolchain, d[0], d[1], NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME(), NQBP_PRJ_DIR(), NQBP_PRE_PROCESS_SCRIPT(), NQBP_PRE_PROCESS_SCRIPT_ARGS() )
+                    process_entry_build_directory( printer, arguments, toolchain, d[0], d[1], NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME(), NQBP_PRJ_DIR(), NQBP_PRE_PROCESS_SCRIPT(), NQBP_PRE_PROCESS_SCRIPT_ARGS() )
 
             # Build multiple directories at the same time (limited to building at most 2 directories at a time)
             else:
@@ -417,8 +409,7 @@ def do_build( printer, toolchain, arguments, variant ):
                             d,e        = build[index]
                             index     += 1
                             busy      += 1
-                            handles[i] = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() ))
-                            #handles[i] = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME(), NQBP_PRJ_DIR(), NQBP_PRE_PROCESS_SCRIPT(), NQBP_PRE_PROCESS_SCRIPT_ARGS() ))
+                            handles[i] = Process(target=process_entry_build_directory, args=(printer, arguments, toolchain, d, e, NQBP_PKG_ROOT(), NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME(), NQBP_PRJ_DIR(), NQBP_PRE_PROCESS_SCRIPT(), NQBP_PRE_PROCESS_SCRIPT_ARGS() ))
                             handles[i].start()
 
                     # Poll for processes being done
@@ -440,6 +431,9 @@ def do_build( printer, toolchain, arguments, variant ):
         printer.output( "=====================" )
         printer.output( "= Building Project Directory:" )
     
+        # Check/run the PreProcessing script
+        utils.run_pre_processing_script( printer, NQBP_PRJ_DIR(), NQBP_WORK_ROOT(), NQBP_PKG_ROOT(), NQBP_PRJ_DIR(), NQBP_PRE_PROCESS_SCRIPT(), NQBP_PRE_PROCESS_SCRIPT_ARGS(),  verbose=arguments['-v'] )
+        
         # check for existing 'sources.b' file 
         files = utils.get_files_to_build( printer, toolchain, '.', NQBP_NAME_SOURCES() )
 
@@ -460,12 +454,8 @@ def do_build( printer, toolchain, arguments, variant ):
      
            
 # Internal helper method to invoke building a single directory
-def process_entry_build_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname ):
-    build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname )
-
-## Internal helper method to invoke building a single directory
-#def process_entry_build_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname, prj_dirname, preprocess_script, preprocess_args ):
-#    build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname, prj_dirname, preprocess_script, preprocess_args )
+def process_entry_build_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname, prj_dirname, preprocess_script, preprocess_args ):
+    build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname, prj_dirname, preprocess_script, preprocess_args )
 
 
 #-----------------------------------------------------------------------------
@@ -600,7 +590,7 @@ def filter_dir_list( printer, fulllist, startdir, stopdir ):
     return buildlist, skiplist
 
 #-----------------------------------------------------------------------------
-def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname ):
+def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root, work_root, pkgs_dirname, prj_dirname, preprocess_script, preprocess_args ):
    
     srcpath, display, dir = utils.derive_src_path( pkg_root, work_root, pkgs_dirname, entry, dir )
 
@@ -625,8 +615,8 @@ def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root,
     d = utils.create_subdirectory( printer, os.getcwd(), dir[0] )
     utils.push_dir( d )
 
-    ## Check/run the PreProcessing script
-    #utils.run_pre_processing_script( printer, toolchain, srcpath, pkg_root, prj_dirname, preprocess_script, preprocess_args, verbose=arguments['-v'] )
+    # Check/run the PreProcessing script
+    utils.run_pre_processing_script( printer, srcpath, work_root, pkg_root, prj_dirname, preprocess_script, preprocess_args, verbose=arguments['-v'] )
 
     # Get/Construct the source file list and filter it (if needed) for the specified directory
     files = utils.get_and_filter_files_to_build( printer, toolchain, dir, srcpath, NQBP_NAME_SOURCES() )

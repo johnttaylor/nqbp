@@ -1,5 +1,5 @@
 #
-src/bob/your/uncle
+/src/bob/your/uncle
 //PkgB/src/daryl
 
 # /temp

@@ -156,10 +156,9 @@ def replace_environ_variable( printer, line, marker='$' ):
     return replace_environ_variable(printer,line,marker)
 
 #-----------------------------------------------------------------------------
-def create_working_libdirs( printer, inf, arguments, libdirs, local_external_flag, variant, parent=None ):
+def create_working_libdirs( printer, inf, arguments, libdirs, libnames, local_external_flag, variant, parent=None ):
 
     # process all entries in the file        
-    libnames = []
     for line in inf:
         # 'normalize' the file entries
         line      = standardize_dir_sep( line.strip() )
@@ -248,8 +247,9 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
                 printer.output( "ERROR: Missing/invalid nest '{}': {}".format(NQBP_NAME_LIBDIRS(),line) )
                 sys.exit(1)
                 
+            printer.debug( "# Nested libdirs file: " + path+line )
             f = open( path+line, 'r' )
-            create_working_libdirs( printer, f, arguments, libdirs, entry, variant, newparent )
+            create_working_libdirs( printer, f, arguments, libdirs, libnames, entry, variant, newparent )
             f.close()
             continue               
 
@@ -272,7 +272,7 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
         if ( v > 1 ):
             duplicates = True
             print( "Duplicate libdirs: ", k )
-    if ( duplicates ):
+    if ( duplicates and not arguments['--debug'] ):
         sys.exit( "ERROR Duplicate entries in libdirs.b" )
 
         

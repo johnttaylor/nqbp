@@ -347,9 +347,10 @@ class ToolChain:
             self._dump_options(  self._all_opts, True )
             
         # Create the list of directories from libdirs.b file to run the pre-processing clean script against
-        self.libdirs = []
+        self.libdirs  = []
+        self.libnames = []
         inf = open( NQBP_NAME_LIBDIRS(), 'r' )
-        utils.create_working_libdirs( self._printer, inf, arguments, self.libdirs, 'local', bld_var )  
+        utils.create_working_libdirs( self._printer, inf, arguments, self.libdirs, self.libnames, 'local', bld_var )  
         inf.close()
 
     #--------------------------------------------------------------------------
@@ -374,7 +375,7 @@ class ToolChain:
             self._printer.output( cmd )
         if (utils.run_shell(self._printer, cmd) ):
             self._printer.output("=")
-            self._printer.output("= Build Failed: archiver/libririan error")
+            self._printer.output("= Build Failed: archiver/librarian error")
             self._printer.output("=")
             sys.exit(1)
         
@@ -447,9 +448,10 @@ class ToolChain:
         self._printer.debug( '# ENTER: base.ToolChain.pre_link' )
         
         # Set my command options to construct an 'all' libdirs list
-        libdirs = []
-        myargs  = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False }
-        utils.create_working_libdirs( self._printer, inf, myargs, libdirs, local_external_setting, variant )  
+        libdirs  = []
+        libnames = []
+        myargs   = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False }
+        utils.create_working_libdirs( self._printer, inf, myargs, libdirs, libnames, local_external_setting, variant )  
         
         # Expand any _BUILD_DIR.aaaa symbols for .firstobjs and .lastobjs
         self._all_opts.firstobjs = utils.replace_build_dir_symbols(self,  self._all_opts.firstobjs, libdirs, ".." )

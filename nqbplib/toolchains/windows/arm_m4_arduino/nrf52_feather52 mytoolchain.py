@@ -32,6 +32,9 @@ env_error = None
 ARDUINO_TOOLS = os.environ.get( 'ARDUINO_TOOLS' )
 if ( ARDUINO_TOOLS == None ):
     ARDUINO_TOOLS = env_error = "ARDUINO_TOOLS"
+ARDUINO_SUPPORT = os.environ.get( 'ARDUINO_SUPPORT' )
+if ( ARDUINO_SUPPORT == None ):
+    ARDUINO_SUPPORT = env_error = "ARDUINO_SUPPORT"
 ARDUINO_COMPILER_VER = os.environ.get( 'ARDUINO_COMPILER_VER' )
 if ( ARDUINO_COMPILER_VER == None ):
     ARDUINO_COMPILER_VER = env_error = "ARDUINO_COMPILER_VER"
@@ -61,7 +64,7 @@ base_release = BuildValues()        # Do NOT comment out this line
 base_release.cflags = ' -Wall -DF_CPU=64000000 -DARDUINO=10802'
 
 
-# Set project specific 'optimzed' options
+# Set project specific 'optimized' options
 optimzed_release = BuildValues()    # Do NOT comment out this line
 
 # Set project specific 'debug' options
@@ -83,7 +86,7 @@ release_opts = { 'user_base':base_release,
                }
                
                
-# Add new dictionary of for new build configuraiton options
+# Add new dictionary of for new build configuration options
 #xyz_opts = { 'user_base':base_xyz, 
 #             'user_optimized':optimzed_xyz, 
 #             'user_debug':debug_xyz
@@ -91,7 +94,7 @@ release_opts = { 'user_base':base_release,
   
         
 # Add new variant option dictionary to # dictionary of 
-# build varaints
+# build variants
 build_variants = { 'arduino':release_opts,
 #                  'xyz':xyz_opts,
                  }    
@@ -113,5 +116,5 @@ from nqbplib.toolchains.windows.arm_m4_arduino.nrf52_feather52 import ToolChain
 
 # Function that instantiates an instance of the toolchain
 def create():
-    tc = ToolChain( FINAL_OUTPUT_NAME, prjdir, build_variants, ARDUINO_TOOLS, ARDUINO_COMPILER_VER, ARDUINO_BSP_VER, ARDUINO_NRF_UTIL_VER, "arduino", env_error )
+    tc = ToolChain( FINAL_OUTPUT_NAME, prjdir, build_variants, ARDUINO_TOOLS, ARDUINO_SUPPORT, ARDUINO_COMPILER_VER, ARDUINO_BSP_VER, ARDUINO_NRF_UTIL_VER, "arduino", env_error )
     return tc 

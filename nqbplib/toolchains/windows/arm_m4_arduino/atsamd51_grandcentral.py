@@ -10,11 +10,12 @@
 import sys, os
 from nqbplib import base
 from nqbplib import utils
+from nqbplib import my_globals
 
 class ToolChain( base.ToolChain ):
 
     #--------------------------------------------------------------------------
-    def __init__( self, exename, prjdir, build_variants, env_tools, env_cc_ver, env_bsp_ver, default_variant='release', env_error=None, override_freertos_config=False ):
+    def __init__( self, exename, prjdir, build_variants, env_tools, env_support, env_cc_ver, env_bsp_ver, default_variant='release', env_error=None, override_freertos_config=False ):
         base.ToolChain.__init__( self, exename, prjdir, build_variants, default_variant )
         self._ccname   = 'GCC Arm-Cortex M4 (no eabi) Compiler'
         self._cc       = os.path.join( env_tools, 'tools', 'gcc-arm-none-eabi', env_cc_ver, 'bin', 'arm-none-eabi-gcc' )
@@ -30,13 +31,13 @@ class ToolChain( base.ToolChain ):
         # Cache potential error for environment variables not set
         self._env_error = env_error;
 
-        self._clean_list.extend( ('d') )
+        self._clean_pkg_dirs.extend( ['arduino'] )
 
         # set the name of the linker output (not the final output)
         self._link_output = '-o ' + exename + '.elf'
 
         # Define paths
-        samd_src_path         = os.path.join( env_tools, 'hardware', 'samd', env_bsp_ver )
+        samd_src_path         = os.path.join( my_globals.NQBP_WORK_ROOT(), env_support, 'arduino', 'hardware', 'samd', env_bsp_ver )
         sdk_src_path          = os.path.join( samd_src_path, 'cores', 'arduino' )
         arduino_src_path      = os.path.join( env_tools, "..", "arduino", 'tools')
         self._base_release.inc = self._base_release.inc + \

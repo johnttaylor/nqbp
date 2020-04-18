@@ -119,7 +119,7 @@ def del_files_by_ext(dir, *exts):
 
     files_to_delete = dir_list_filter_by_ext( dir, *exts )
     for f in files_to_delete:
-        os.remove(f)
+        delete_file(f)
 
     
 #-----------------------------------------------------------------------------

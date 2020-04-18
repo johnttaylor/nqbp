@@ -10,11 +10,12 @@
 import sys, os
 from nqbplib import base
 from nqbplib import utils
+from nqbplib import my_globals
 
 class ToolChain( base.ToolChain ):
 
     #--------------------------------------------------------------------------
-    def __init__( self, exename, prjdir, build_variants, env_tools, env_cc_ver, env_bsp_ver, env_nfr_utils, default_variant='release', env_error=None, override_freertos_config=False ):
+    def __init__( self, exename, prjdir, build_variants, env_tools, env_support, env_cc_ver, env_bsp_ver, env_nfr_utils, default_variant='release', env_error=None, override_freertos_config=False ):
         base.ToolChain.__init__( self, exename, prjdir, build_variants, default_variant )
         self._ccname   = 'GCC Arm-Cortex M4 (no eabi) Compiler'
         self._cc       = os.path.join( env_tools, 'tools', 'gcc-arm-none-eabi', env_cc_ver, 'bin', 'arm-none-eabi-gcc' )
@@ -24,6 +25,8 @@ class ToolChain( base.ToolChain ):
         self._objcpy   = os.path.join( env_tools, 'tools', 'gcc-arm-none-eabi', env_cc_ver, 'bin', 'arm-none-eabi-objcopy' )
         self._nrfutil  = os.path.join( env_tools, 'hardware', 'nrf52', env_bsp_ver, 'tools', env_nfr_utils, 'binaries', 'win32', 'nrfutil.exe' )
 
+        self._clean_pkg_dirs.extend( ['arduino'] )
+        
         self._asm_ext  = 'asm'    
         self._asm_ext2 = 'S'   
 
@@ -36,7 +39,7 @@ class ToolChain( base.ToolChain ):
         self._link_output = '-o ' + exename + '.elf'
 
         # Define paths
-        nrf52_src_path         = os.path.join( env_tools, 'hardware', 'nrf52', env_bsp_ver )
+        nrf52_src_path         = os.path.join( my_globals.NQBP_WORK_ROOT(), env_support, 'arduino', 'hardware', 'nrf52', env_bsp_ver )
         sdk_src_path           = os.path.join( nrf52_src_path, 'cores', 'nRF5', 'SDK', 'components')
         freertos_src_path      = os.path.join( nrf52_src_path, 'cores', 'nRF5', 'freertos' )
         nffs_src_path          = os.path.join( nrf52_src_path, 'libraries', 'nffs', 'src' )

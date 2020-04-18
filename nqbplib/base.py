@@ -135,7 +135,7 @@ class ToolChain:
         
         self._validate_cc_options = '-v'
         
-        self._clean_list     = ['o', 'lst', 'txt', 'map', 'obj', 'idb', 'pdb', 'out', 'pyc', NQBP_TEMP_EXT(), 'gcda', 'gcov', 'gcno', 'tmp' ]
+        self._clean_list     = ['o', 'd', 'lst', 'txt', 'map', 'obj', 'idb', 'pdb', 'out', 'pyc', NQBP_TEMP_EXT(), 'gcda', 'gcov', 'gcno', 'tmp' ]
         self._clean_pkg_dirs = [ 'src' ]
         self._clean_ext_dirs = [ NQBP_WRKPKGS_DIRNAME() ]
         self._clean_abs_dirs = [ '__abs' ]

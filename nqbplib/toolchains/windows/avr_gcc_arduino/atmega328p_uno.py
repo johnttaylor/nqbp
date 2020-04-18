@@ -10,11 +10,12 @@
 import sys, os
 from nqbplib import base
 from nqbplib import utils
+from nqbplib import my_globals
 
 class ToolChain( base.ToolChain ):
 
     #--------------------------------------------------------------------------
-    def __init__( self, exename, prjdir, build_variants, env_tools, default_variant='release', env_error=None ):
+    def __init__( self, exename, prjdir, build_variants, env_tools, env_support, default_variant='release', env_error=None ):
         base.ToolChain.__init__( self, exename, prjdir, build_variants, default_variant )
         self._ccname   = 'AVR-GCC-ATMega328p Ardunio'
         self._cc       = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc' )
@@ -29,12 +30,14 @@ class ToolChain( base.ToolChain ):
         # Cache potential error for environment variables not set
         self._env_error = env_error;
 
+        self._clean_pkg_dirs.extend( ['arduino'] )
+
         # set the name of the linker output (not the final output)
         self._link_output = '-o ' + exename + '.elf'
 
         # Define paths
-        core_path = os.path.join(env_tools,'hardware', 'arduino', 'avr', 'cores', 'arduino' )
-        hardware_path = os.path.join(env_tools, 'hardware', 'arduino', 'avr', 'variants', 'standard' )
+        core_path     = os.path.join(my_globals.NQBP_WORK_ROOT(), env_support, 'arduino', 'hardware', 'avr', 'cores', 'arduino' )
+        hardware_path = os.path.join(my_globals.NQBP_WORK_ROOT(), env_support, 'arduino', 'hardware', 'avr', 'variants', 'standard' )
         self._base_release.inc = self._base_release.inc + " -I{} -I{} ".format(core_path, hardware_path) 
 
         # 

@@ -32,13 +32,15 @@ env_error = None
 ARDUINO_TOOLS = os.environ.get( 'ARDUINO_TOOLS' )
 if ( ARDUINO_TOOLS == None ):
     ARDUINO_TOOLS = env_error = "ARDUINO_TOOLS"
+ARDUINO_SUPPORT = os.environ.get( 'ARDUINO_SUPPORT' )
+if ( ARDUINO_SUPPORT == None ):
+    ARDUINO_SUPPORT = env_error = "ARDUINO_SUPPORT"
 ARDUINO_COMPILER_VER = os.environ.get( 'ARDUINO_COMPILER_VER' )
 if ( ARDUINO_COMPILER_VER == None ):
     ARDUINO_COMPILER_VER = env_error = "ARDUINO_COMPILER_VER"
 ARDUINO_BSP_VER = os.environ.get( 'ARDUINO_BSP_VER' )
 if ( ARDUINO_BSP_VER == None ):
     ARDUINO_BSP_VER = env_error = "ARDUINO_BSP_VER"
-
 
 #===================================================
 # BEGIN EDITS/CUSTOMIZATIONS
@@ -111,5 +113,5 @@ from nqbplib.toolchains.windows.arm_m4_arduino.atsamd51_grandcentral import Tool
 
 # Function that instantiates an instance of the toolchain
 def create():
-    tc = ToolChain( FINAL_OUTPUT_NAME, prjdir, build_variants, ARDUINO_TOOLS, ARDUINO_COMPILER_VER, ARDUINO_BSP_VER, "arduino", env_error )
+    tc = ToolChain( FINAL_OUTPUT_NAME, prjdir, build_variants, ARDUINO_TOOLS, ARDUINO_SUPPORT, ARDUINO_COMPILER_VER, ARDUINO_BSP_VER, "arduino", env_error )
     return tc 

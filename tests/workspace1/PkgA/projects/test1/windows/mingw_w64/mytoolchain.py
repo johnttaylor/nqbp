@@ -22,6 +22,8 @@
 
 # get definition of the Options strcuture
 from nqbplib.base import BuildValues
+from nqbplib.my_globals import NQBP_PRE_PROCESS_SCRIPT
+from nqbplib.my_globals import NQBP_PRE_PROCESS_SCRIPT_ARGS
 
 
 #===================================================
@@ -30,6 +32,9 @@ from nqbplib.base import BuildValues
 
 # Set the name for the final output item
 FINAL_OUTPUT_NAME = 'a.exe'
+
+NQBP_PRE_PROCESS_SCRIPT( "example_preprocessing_script.py" )  
+NQBP_PRE_PROCESS_SCRIPT_ARGS("mingw_64")    
 
 #
 # For build config/variant: "Release"

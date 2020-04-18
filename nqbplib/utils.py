@@ -5,6 +5,10 @@ import os
 import logging
 import sys
 import subprocess
+import pathlib
+import platform
+import collections
+
 
 # Globals
 from .my_globals import NQBP_WORK_ROOT
@@ -17,6 +21,8 @@ from .my_globals import NQBP_PRJ_DIR_MARKER1
 from .my_globals import NQBP_PRJ_DIR_MARKER2
 from .my_globals import NQBP_PKG_TOP
 from .my_globals import NQBP_WRKPKGS_DIRNAME
+from .my_globals import NQBP_PRE_PROCESS_SCRIPT
+from .my_globals import NQBP_PRE_PROCESS_SCRIPT_ARGS
 from .my_globals import OUT
 
 # Module globals
@@ -113,7 +119,7 @@ def del_files_by_ext(dir, *exts):
 
     files_to_delete = dir_list_filter_by_ext( dir, *exts )
     for f in files_to_delete:
-        os.remove(f)
+        delete_file(f)
 
     
 #-----------------------------------------------------------------------------
@@ -150,8 +156,8 @@ def replace_environ_variable( printer, line, marker='$' ):
     return replace_environ_variable(printer,line,marker)
 
 #-----------------------------------------------------------------------------
-def create_working_libdirs( printer, inf, arguments, libdirs, local_external_flag, variant, parent=None ):
-    
+def create_working_libdirs( printer, inf, arguments, libdirs, libnames, local_external_flag, variant, parent=None ):
+
     # process all entries in the file        
     for line in inf:
         # 'normalize' the file entries
@@ -241,8 +247,9 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
                 printer.output( "ERROR: Missing/invalid nest '{}': {}".format(NQBP_NAME_LIBDIRS(),line) )
                 sys.exit(1)
                 
+            printer.debug( "# Nested libdirs file: " + path+line )
             f = open( path+line, 'r' )
-            create_working_libdirs( printer, f, arguments, libdirs, entry, variant, newparent )
+            create_working_libdirs( printer, f, arguments, libdirs, libnames, entry, variant, newparent )
             f.close()
             continue               
 
@@ -255,6 +262,19 @@ def create_working_libdirs( printer, inf, arguments, libdirs, local_external_fla
             pass
         else:
             libdirs.append( ((line, srctype, srclist), entry) )
+            libnames.append( line )
+
+
+    # Check for duplicates (Note: Duplicates can/will fail a build when performing parallel builds)
+    duplicates = False
+    d          = collections.Counter(libnames)
+    for k,v in d.items():
+        if ( v > 1 ):
+            duplicates = True
+            print( "Duplicate libdirs: ", k )
+    if ( duplicates and not arguments['--debug'] ):
+        sys.exit( "ERROR Duplicate entries in libdirs.b" )
+
         
 # 
 def find_libdir_entry( libdirs, dir_path, entry_type=None ):
@@ -270,7 +290,7 @@ def find_libdir_entry( libdirs, dir_path, entry_type=None ):
     return (False, (dir_path, None, None), entry_type)
 
 #-----------------------------------------------------------------------------
-def run_pre_processing_script( printer, toolchain, current_dir, pkg_root, prj_dirname, preprocess_script, preprocess_args, build_clean="build", verbose=False ):
+def run_pre_processing_script( printer, current_dir, work_root, pkg_root, prj_dirname, preprocess_script, preprocess_args, build_clean="build", verbose=False ):
     # Do nothing if feature not enabled
     if ( preprocess_script != None ):
         script = os.path.join( current_dir, preprocess_script )
@@ -279,10 +299,64 @@ def run_pre_processing_script( printer, toolchain, current_dir, pkg_root, prj_di
         if ( os.path.isfile( script) ):
             verbose_opt = "verbose" if verbose else "terse"
             printer.output( "= Running Pre-Process script: " + preprocess_script )
-            cmd = "{} {} {} {} {} {} {}".format( script, build_clean, verbose_opt, pkg_root, prj_dirname, current_dir, preprocess_args)
-            printer.debug( "PreProcessing cmd= " + cmd )
-            run_shell2( cmd, stdout=True, on_err_msg="PreProcess Script Failed!")
+            cmd = "{} {} {} {} {} {} {} {}".format( script, build_clean, verbose_opt, work_root, pkg_root, prj_dirname, current_dir, preprocess_args)
+            printer.debug( "# PreProcessing cmd = " + cmd )
+            run_shell2( cmd, stdout=True, on_err_msg="Running PreProcess Script Failed!")
 
+
+#
+def run_clean_pre_processing( printer, libdirs, clean_pkg=False, clean_local=False, clean_xpkgs=False, clean_absolute=False ):
+    # Do nothing if no pre-processing script is defined
+    if ( NQBP_PRE_PROCESS_SCRIPT() != None and len(libdirs) > 0 ):
+        
+        # Walk list of possible directories
+        for d,e in libdirs:
+            line,srctype,srclist = d
+
+            # Clean Local and PKG dirs
+            if ( (clean_pkg and e == 'local') or (clean_local and e == 'pkg') ):
+                dir = os.path.join( NQBP_PKG_ROOT(), line )
+                run_clean_dir_pre_processing( dir, printer )
+
+            # Clean External Packages
+            if ( clean_xpkgs and e == 'xpkg' ):
+                dir = os.path.join( NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME(), line )
+                run_clean_dir_pre_processing( dir, printer )
+
+            # Clean Absolute directories
+            if ( clean_absolute and e == 'absolute' ):
+                run_clean_dir_pre_processing( line, printer )
+
+#
+def run_clean_dir_pre_processing( dir, printer ):
+    # Do nothing if no pre-processing script is defined
+    if ( NQBP_PRE_PROCESS_SCRIPT() != None ):
+        printer.debug( "# Clean pre_processing dir= " + dir )
+
+        # Set verbose script option
+        verbose_opt = "verbose" if printer.verbose_on else "terse"
+    
+        # Run script if it exists
+        script = os.path.join( dir, NQBP_PRE_PROCESS_SCRIPT() )
+        if ( os.path.isfile( script) ):
+            printer.output( "= Cleaning Pre-Process script: " + NQBP_PRE_PROCESS_SCRIPT() )
+            cmd = "{} {} {} {} {} {} {} {}".format( script, "clean", verbose_opt, NQBP_WORK_ROOT(), NQBP_PKG_ROOT(), NQBP_PRJ_DIR (), dir, NQBP_PRE_PROCESS_SCRIPT_ARGS())
+            printer.debug( "# Clean PreProcessing cmd = " + cmd )
+            run_shell2( cmd, stdout=True, on_err_msg="Cleaning PreProcess Script Failed!")
+
+           
+# 
+def fix_absolute_root( filepath ):
+    print( "fix_root", filepath, len(pathlib.Path( filepath ).parts) )
+    if ( platform.system() == 'Windows' ):
+        p = pathlib.Path( filepath )
+        if ( len(p.parts) > 1 ):
+            filepath = os.path.join( os.sep, p.parts[0] + ':' + os.sep)
+            if ( len(p.parts) > 2 ):
+                filepath = os.path.join( filepath, *p.parts[1:] )
+
+    print("   end: ", filepath )
+    return filepath
 
 #-----------------------------------------------------------------------------
 def create_subdirectory( printer, pardir, new_subdir ):

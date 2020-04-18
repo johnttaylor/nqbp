@@ -48,6 +48,7 @@ from .my_globals import NQBP_VERSION
 from .my_globals import NQBP_PRJ_DIR
 from .my_globals import NQBP_WRKPKGS_DIRNAME
 from .my_globals import NQBP_PUBLICAPI_DIRNAME
+from .my_globals import NQBP_NAME_LIBDIRS
 
 
 # Structure for holding build-variant specific options
@@ -106,6 +107,9 @@ class ToolChain:
         # Housekeeping -->set some global vars    
         NQBP_PRJ_DIR( prjdir )
         
+        # Public members
+        self.libdirs = []
+        
         # Private members
         self._bld_variants               = build_variants
         self._build_time_utc             = int(time.time())
@@ -113,7 +117,7 @@ class ToolChain:
         self._asmflag_symdef             = '-D'
         self._cflag_symvalue_delimiter   = ''
         self._asmflag_symvalue_delimiter = ''
-        self._printer         = None
+        self._printer                    = None
         
         # Tools
         self._ccname   = 'Generic GCC'
@@ -131,7 +135,7 @@ class ToolChain:
         
         self._validate_cc_options = '-v'
         
-        self._clean_list     = ['o', 'lst', 'txt', 'map', 'obj', 'idb', 'pdb', 'out', 'pyc', NQBP_TEMP_EXT(), 'gcda', 'gcov', 'gcno', 'tmp' ]
+        self._clean_list     = ['o', 'd', 'lst', 'txt', 'map', 'obj', 'idb', 'pdb', 'out', 'pyc', NQBP_TEMP_EXT(), 'gcda', 'gcov', 'gcno', 'tmp' ]
         self._clean_pkg_dirs = [ 'src' ]
         self._clean_ext_dirs = [ NQBP_WRKPKGS_DIRNAME() ]
         self._clean_abs_dirs = [ '__abs' ]
@@ -146,7 +150,8 @@ class ToolChain:
         self._final_output_name = exename
         self._link_output       = '-o ' + exename
         
-        
+
+
         #
         # Build Config/Variant: "release"
         #
@@ -204,10 +209,13 @@ class ToolChain:
     
     #--------------------------------------------------------------------------
     def clean(self, pkg, ext, abs, silent=False):
+
         if ( pkg == True ):
             if ( not silent ):
                 self._printer.output( "= Cleaning Project and local Package derived objects..." )
             self._printer.debug( '# Cleaning file extensions: {}'.format( self._clean_list ) )
+            utils.run_clean_dir_pre_processing( NQBP_PRJ_DIR(), self._printer )
+            utils.run_clean_pre_processing( self._printer, self.libdirs, clean_pkg=True, clean_local=True )
             utils.del_files_by_ext( NQBP_PRJ_DIR(), self._clean_list )
 
             self._printer.debug( '# Cleaning directories: {}'.format( self._clean_pkg_dirs ) )
@@ -224,6 +232,7 @@ class ToolChain:
             if ( not silent ):
                 self._printer.output( "= Cleaning External Package derived objects..." )
             self._printer.debug( '# Cleaning directories: {}'.format( self._clean_ext_dirs ) )
+            utils.run_clean_pre_processing( self._printer, self.libdirs, clean_xpkgs=True )
             for d in self._clean_ext_dirs:
                 if ( os.path.exists(d) ):
                     shutil.rmtree( d, True )
@@ -232,6 +241,7 @@ class ToolChain:
             if ( not silent ):
                 self._printer.output( "= Cleaning Absolute Path derived objects..." )
             self._printer.debug( '# Cleaning directories: {}'.format( self._clean_abs_dirs ) )
+            utils.run_clean_pre_processing( self._printer, self.libdirs, clean_absolute=True )
             for d in self._clean_abs_dirs:
                 if ( os.path.exists(d) ):
                     shutil.rmtree( d, True )
@@ -336,7 +346,13 @@ class ToolChain:
             self._printer.debug( "# Final 'all_opts'" )
             self._dump_options(  self._all_opts, True )
             
-    
+        # Create the list of directories from libdirs.b file to run the pre-processing clean script against
+        self.libdirs  = []
+        self.libnames = []
+        inf = open( NQBP_NAME_LIBDIRS(), 'r' )
+        utils.create_working_libdirs( self._printer, inf, arguments, self.libdirs, self.libnames, 'local', bld_var )  
+        inf.close()
+
     #--------------------------------------------------------------------------
     def ar( self, arguments ):
         # NOTE: Assumes archive is to be built in the current working dir
@@ -359,7 +375,7 @@ class ToolChain:
             self._printer.output( cmd )
         if (utils.run_shell(self._printer, cmd) ):
             self._printer.output("=")
-            self._printer.output("= Build Failed: archiver/libririan error")
+            self._printer.output("= Build Failed: archiver/librarian error")
             self._printer.output("=")
             sys.exit(1)
         
@@ -432,9 +448,10 @@ class ToolChain:
         self._printer.debug( '# ENTER: base.ToolChain.pre_link' )
         
         # Set my command options to construct an 'all' libdirs list
-        libdirs = []
-        myargs  = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False }
-        utils.create_working_libdirs( self._printer, inf, myargs, libdirs, local_external_setting, variant )  
+        libdirs  = []
+        libnames = []
+        myargs   = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False }
+        utils.create_working_libdirs( self._printer, inf, myargs, libdirs, libnames, local_external_setting, variant )  
         
         # Expand any _BUILD_DIR.aaaa symbols for .firstobjs and .lastobjs
         self._all_opts.firstobjs = utils.replace_build_dir_symbols(self,  self._all_opts.firstobjs, libdirs, ".." )

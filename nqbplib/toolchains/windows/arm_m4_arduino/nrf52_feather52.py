@@ -25,7 +25,7 @@ class ToolChain( base.ToolChain ):
         self._objcpy   = os.path.join( env_tools, 'tools', 'gcc-arm-none-eabi', env_cc_ver, 'bin', 'arm-none-eabi-objcopy' )
         self._nrfutil  = os.path.join( env_tools, 'hardware', 'nrf52', env_bsp_ver, 'tools', env_nfr_utils, 'binaries', 'win32', 'nrfutil.exe' )
 
-        self._clean_pkg_dirs.extend( ['arduino'] )
+        self._clean_pkg_dirs.extend( ['arduino', '_arduino'] )
         
         self._asm_ext  = 'asm'    
         self._asm_ext2 = 'S'   

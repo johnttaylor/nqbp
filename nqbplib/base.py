@@ -164,14 +164,15 @@ class ToolChain:
         #       - Package source directory
         #       - Project directory                 
         #       - Workspace Public Include directory
+        #       - Legacy 'xsrc' Third party source tree
         #
         self._base_release = BuildValues()
-        self._base_release.inc       = '-I. -I{}{}src  -I{} -I{}{}{}{}src'.format(NQBP_PKG_ROOT(),os.sep, prjdir, NQBP_WORK_ROOT(),os.sep,NQBP_PUBLICAPI_DIRNAME(),os.sep  )
+        self._base_release.inc       = '-I. -I{}{}src  -I{} -I{}'.format(NQBP_PKG_ROOT(),os.sep, prjdir, NQBP_PUBLICAPI_DIRNAME()  )
         self._base_release.asminc    = self._base_release.inc
         self._base_release.cflags    = '-c -DBUILD_TIME_UTC={:d} '.format(self._build_time_utc)
         self._base_release.asmflags  = self._base_release.cflags
         #self._base_release.linklibs  = '-L lib -Wl,-lstdc++'
-        self._base_release.linklibs  = '-Wl,-lstdc++'
+        self._base_release.linklibs  = '-Wl,-lstdc++ -Wl,-lm'
         
         # Optimized options, flags, etc.
         self._optimized_release = BuildValues()
@@ -208,7 +209,15 @@ class ToolChain:
         
     
     #--------------------------------------------------------------------------
-    def clean(self, pkg, ext, abs, silent=False):
+    def clean(self, pkg, ext, abs, silent=False, blddir=True):
+        if ( blddir == True ):
+            if ( not silent ):
+                self._printer.output( "= Cleaning Built artifacts..." )
+            # remove output/build variant directory
+            vardir = '_' + self._bld
+            self._printer.debug( '# Cleaning directory: {}'.format( vardir ) )
+            if ( os.path.exists(vardir) ):
+                shutil.rmtree( vardir, True )   
 
         if ( pkg == True ):
             if ( not silent ):
@@ -223,11 +232,6 @@ class ToolChain:
                 if ( os.path.exists(d) ):
                     shutil.rmtree( d, True )
 
-            # remove output/build variant directory
-            vardir = '_' + self._bld
-            if ( os.path.exists(vardir) ):
-                shutil.rmtree( vardir, True )
-                            
         if ( ext == True ):
             if ( not silent ):
                 self._printer.output( "= Cleaning External Package derived objects..." )

@@ -11,6 +11,7 @@ _NQBP_PKG_ROOT                = ''
 _NQBP_PRE_PROCESS_SCRIPT      = None
 _NQBP_PRE_PROCESS_SCRIPT_ARGS = ''
 _NQBP_INITIAL_LIBDIRS         = []
+_NQBP_OUTCAST_MODE            = None
 
 # Initialize globals
 OUT = logging.getLogger( 'nqbp' )
@@ -32,11 +33,17 @@ def NQBP_NAME_SOURCES():
     return 'sources.b'
 
 def NQBP_WRKPKGS_DIRNAME():
-    return 'xpkgs' 
+    if NQBP_OUTCAST_MODE():
+        return 'xpkgs' 
+    else:
+        return 'xsrc' 
+
             
 def NQBP_PUBLICAPI_DIRNAME():
-    return 'xinc' 
-            
+    if NQBP_OUTCAST_MODE():
+        return NQBP_WORK_ROOT() + os.sep + 'xinc' + os.sep + 'src'
+    else:
+        return NQBP_PKG_ROOT() + os.sep + 'xsrc'
 #
 def NQBP_PKG_TOP():
     return 'top'
@@ -91,5 +98,17 @@ def NQBP_PRE_PROCESS_SCRIPT_ARGS( newval=None ):
         _NQBP_PRE_PROCESS_SCRIPT_ARGS = newval
     return _NQBP_PRE_PROCESS_SCRIPT_ARGS   
 
+
+#
+def NQBP_OUTCAST_MODE():
+    global _NQBP_OUTCAST_MODE
+    if ( _NQBP_OUTCAST_MODE == None ):
+        val = os.environ.get('NQBP_OUTCAST_MODE')
+        if ( val == None or val != 'true' ):
+            _NQBP_OUTCAST_MODE = False;
+        else:
+            _NQBP_OUTCAST_MODE = True;
+
+    return _NQBP_OUTCAST_MODE
     
     

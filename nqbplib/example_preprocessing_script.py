@@ -12,7 +12,7 @@
 #   NQBP_PRE_PROCESS_SCRIPT( "<preprocess-script.py>" )  # i.e the name of this script
 #   NQBP_PRE_PROCESS_SCRIPT_ARGS("<arg7> <arg8> ...")    # project specific arguments pass to the script
 #
-# NOTE: The script is ALWAYS passed <arg1> ... <arg5> where:
+# NOTE: The script is ALWAYS passed <arg1> ... <arg6> where:
 #             <arg1>: build|clean         
 #             <arg2>: verbose|terse
 #             <arg3>: <workspace-dir>

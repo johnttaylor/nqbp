@@ -39,6 +39,7 @@ from .my_globals import NQBP_NAME_SOURCES
 from .my_globals import NQBP_PRE_PROCESS_SCRIPT
 from .my_globals import NQBP_PRE_PROCESS_SCRIPT_ARGS
 from .my_globals import NQBP_NAME_LIBDIRS
+from .my_globals import NQBP_OUTCAST_MODE
 
 
 
@@ -110,6 +111,7 @@ Arguments:
                    build variant) referenced in the libdirs.b file.
   --qry-dirs2      Same as --qry-dirs with the addition of the any source file
                    include/exclude info
+  --qry-model      Returns the Outcast vs Legacy model for external packages.
   -h,--help        Display help.
   --version        Display version number.
 
@@ -123,6 +125,9 @@ Notes:
     the crash). The '-1' option will suppress all parallel building.  In addition 
     the environment variable NQBP_CMD_OPTIONS (when set to '-1') can be used to
     apply the '-1' option to every build.
+
+    When the environment variable NQBP_OUTCAST_MODE is set to 'true' then NQBP
+    assumes that the Outcast paradigm (of xpkgs/ & xinc/) for external packages.
        
 Examples:
 
@@ -153,6 +158,12 @@ def build( argv, toolchain ):
     printer = Printer( multiprocessing.Lock(), logfile, start_new_file=True );
     toolchain.set_printer( printer )
 
+    # Query External Package handling mode
+    if ( arguments['--qry-model'] ):
+        mode = "Outcast (xpkgs/ & xinc/)" if NQBP_OUTCAST_MODE() else "Legacy (xsrc/)"
+        printer.output( "External Package Model: " + mode )
+        sys.exit()
+        
     # Does the specified variant exist
     if ( arguments['--try'] != None ):
         if ( not arguments['--try'] in toolchain.get_variants() ):
@@ -171,7 +182,7 @@ def build( argv, toolchain ):
     # Pre-build steps
     pre_build_steps( printer, toolchain, arguments )
     printer.debug( str(arguments) )
-
+    
     # Process 'non-build' options
     if ( arguments['--qry-blds'] ):
         toolchain.list_variants()

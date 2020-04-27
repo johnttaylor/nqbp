@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+
 """
  
 Chuck is an script for invoking a package's automated unit tests
@@ -34,9 +35,9 @@ Options:
                          [Default: *]   
     --d2 DIR             A second directory condition that will be AND'd with 
                          with the --dir option when restricting the directory
-                         search.       
-    -t,--turbo           Run the tests in parallel.                         
+                         search.                    
     --loop N             Repeat the test 'N' times.  [default: 1] 
+    -t,--turbo           Runs the tests in parallel
     -v                   Be verbose 
     -h, --help           Displays this information
 
@@ -58,35 +59,27 @@ from multiprocessing import Process
 import multiprocessing
 import time
 
-from docopt.docopt import docopt
+sys.path.append( os.path.dirname(__file__) + os.sep + ".." )
+
 from nqbplib import utils
+from nqbplib.docopt.docopt import docopt
 
 
 CHUCK_VERSION = "1.0"
 
 #------------------------------------------------------------------------------
-        #
-def execute_test( target, ppath, args, arg_string):
-    utils.push_dir( os.path.split(target)[0] )
-    reldir = target.replace(ppath,'')[1:]
-    exe    = os.path.basename(target)
-    cmd    = "{} {}".format( exe, arg_string )
-    for n in range( int(args['--loop']) ):
-        print("= EXECUTING (#{}): {} {}".format( n+1, reldir, arg_string ))
-        result = utils.run_shell2( cmd, args['-v'], "** ERROR: Test failed **" )
-    utils.pop_dir
-
+        
         
 #------------------------------------------------------------------------------
 #
-def execute_test( target, ppath, args, arg_string):
+def execute_test( target, ppath, args, arg_string ):
     utils.push_dir( os.path.split(target)[0] )
     reldir = target.replace(ppath,'')[1:]
     exe    = os.path.basename(target)
-    cmd    = "{} {}".format( exe, arg_string )
+    cmd    = ".{}{} {}".format( os.path.sep, exe, arg_string )
     for n in range( int(args['--loop']) ):
-        print("= EXECUTING (#{}): {} {}".format( n+1, reldir, arg_string ))
-        result = utils.run_shell2( cmd, args['-v'], "** ERROR: Test failed **" )
+        print( "= EXECUTING (#{}): {} {}".format( n+1, reldir, arg_string ) )
+        result = utils.run_shell2( cmd, args['-v'], "** ERROR: Test failed (#{} {} {} )**".format(n+1, reldir, arg_string) )
     utils.pop_dir
 
 #------------------------------------------------------------------------------
@@ -160,11 +153,11 @@ if __name__ == '__main__':
         # Build arg string
         arg_string = ' '.join( args['<testargs>'] )
         
-        # Run the tests
+        # Run the tests SEQUENTIALLY
         if ( not args['--turbo'] ):
             for t in tests:
                 execute_test( t, ppath, args, arg_string )
-
+        
         # Run the tests in PARALLEL
         else:
             max     = len(tests)
@@ -174,16 +167,16 @@ if __name__ == '__main__':
             handles = []
             for h in range(0,cpus):
                 handles.append( None )
-            
+
             # Process 'n' directories at a time
             while( index < max or busy > 0 ):
-                # Start multiple processest
+                # Start multiple processes
                 for i in range(0, cpus):
                     if ( handles[i] == None and index < max ):
-                        d        = tests[index]
-                        index   += 1
-                        busy    += 1
-                        handles[i] = Process(target=execute_test, args=(d, ppath, args, arg_string))
+                        d         = tests[index]
+                        index     += 1
+                        busy      += 1
+                        handles[i] = Process(target=execute_test, args=(d, ppath, args, arg_string) )
                         handles[i].start()
 
                 # Poll for processes being done
@@ -197,7 +190,7 @@ if __name__ == '__main__':
                 # sleep for 10ms before polling to see if a process has completed
                 if ( busy >= cpus ):
                     time.sleep( 0.010 )
-            
 
-        print("= ALL Test(s) passed.")
+
+        print( "= ALL Test(s) passed." )
  

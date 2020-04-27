@@ -8,7 +8,7 @@ import subprocess
 import pathlib
 import platform
 import collections
-
+import fnmatch
 
 # Globals
 from .my_globals import NQBP_WORK_ROOT

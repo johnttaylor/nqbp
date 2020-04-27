@@ -353,9 +353,10 @@ class ToolChain:
         # Create the list of directories from libdirs.b file to run the pre-processing clean script against
         self.libdirs  = []
         self.libnames = []
-        inf = open( NQBP_NAME_LIBDIRS(), 'r' )
-        utils.create_working_libdirs( self._printer, inf, arguments, self.libdirs, self.libnames, 'local', bld_var )  
-        inf.close()
+        if ( not arguments['--clean-all'] ):        # Skip if doing a --clean-all
+            inf = open( NQBP_NAME_LIBDIRS(), 'r' )
+            utils.create_working_libdirs( self._printer, inf, arguments, self.libdirs, self.libnames, 'local', bld_var )  
+            inf.close()
 
     #--------------------------------------------------------------------------
     def ar( self, arguments ):

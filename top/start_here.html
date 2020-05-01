@@ -5351,7 +5351,7 @@ html .solidborders td {  border: 1px solid black; }</pre>
 <div modified="20190112022928289" title="$:/state/toc/Overview-Using NQBP--242358753">
 <pre>open</pre>
 </div>
-<div list="[[Selecting What To Build]] Overview" title="$:/StoryList">
+<div list="Overview [[External Package Model]]" title="$:/StoryList">
 <pre></pre>
 </div>
 <div created="20141011164829984" modified="20141020024516096" title="$:/temp/advancedsearch">
@@ -5485,19 +5485,22 @@ html .solidborders td {  border: 1px solid black; }</pre>
 # In the file //toolchain_name// create a new python class that inherits from &lt;code&gt;base.~ToolChain&lt;/code&gt; and that  implements the details for your compiler. 
 # Create a templace file name //toolchain_name mytoolchain// in the same directory as the //toolchain_name// file.  This file is the template for a project's &lt;code&gt;mytoolchain.py&lt;/code&gt; file that will be using the new compiler toolchain.</pre>
 </div>
-<div created="20200421035359045" modified="20200421040726465" tags="Usage [[Using NQBP]]" title="External Package Model">
-<pre>NQBP supports two models for how external source code is handled.  The default model is the //Legacy// model.  The //Outcast// model is enable by setting the environment variable `NQBP_OUTCAST_MODE` to `true` (note: the value is case sensistive).
+<div created="20200421035359045" modified="20200501230759063" tags="Usage [[Using NQBP]]" title="External Package Model">
+<pre>NQBP supports multiple models for how external source code is handled.  The model is selected by setting the environment variable `NQBP_XPKG_MODEL`.  If the variable is not set (or set to unsupported value), then the external source model is set to `legacy`
 
-* ''//Legacy//''
+* `legacy`
 ** All source code including external/third-party is located in under a single root directory, i.e. the //Package// directory.
 ** All //native// source code is located under the `src/` directory in the Package's root directory.
 ** External/third-party source code is stored/located under `xsrc/` directory in the Package's root directory.
 ** The `xsrc/` directory is included in the header search path (after the `src/` directory).
 
-* ''//Outcast//''
+* `outcast`
 ** External/third-part source is mapped into the //Workspace// using the Outcast tools (e.g. `orc mount colony.core`)
 *** Outcast allow for selection of released packages and/or local snapshots pulled directly from a SCM repository
-**All external packages are //mapped// under the `xpkgs/` and `xinc/` directories.</pre>
+**All external packages are //mapped// under the `xpkgs/` and `xinc/` directories.
+
+* `mixed`
+** Attempts to support Outcast //referencing// of the `xpkgs/` and `xinc/` directories while using the //legacy// model.  This model is ''experimental'' and requires manual placement of the external Outcast packages into the single root directory.  ''Do NOT use this model unless you truly know what you are doing''.</pre>
 </div>
 <div created="20140727042146669" creator="JohnTaylor" modified="20141020024342245" modifier="JohnTaylor" tags="Overview" title="Installing NQBP">
 <pre>!!TODO: specific install instructions once hosted on somewhere on the web

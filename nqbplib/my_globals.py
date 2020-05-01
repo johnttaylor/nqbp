@@ -11,7 +11,7 @@ _NQBP_PKG_ROOT                = ''
 _NQBP_PRE_PROCESS_SCRIPT      = None
 _NQBP_PRE_PROCESS_SCRIPT_ARGS = ''
 _NQBP_INITIAL_LIBDIRS         = []
-_NQBP_OUTCAST_MODE            = None
+_NQBP_XPKG_MODEL              = None
 
 # Initialize globals
 OUT = logging.getLogger( 'nqbp' )
@@ -32,15 +32,24 @@ def NQBP_NAME_LIBDIRS():
 def NQBP_NAME_SOURCES():
     return 'sources.b'
 
+def NQBP_XPKG_MODEL_OUTCAST():
+    return 'outcast'
+
+def NQBP_XPKG_MODEL_MIXED():
+    return 'mixed'
+
+def NQBP_XPKG_MODEL_LEGACY():
+    return 'legacy'
+
 def NQBP_WRKPKGS_DIRNAME():
-    if NQBP_OUTCAST_MODE():
+    if ( NQBP_XPKG_MODEL() == NQBP_XPKG_MODEL_OUTCAST() ):
         return 'xpkgs' 
     else:
         return 'xsrc' 
 
             
 def NQBP_PUBLICAPI_DIRNAME():
-    if NQBP_OUTCAST_MODE():
+    if NQBP_XPKG_MODEL() == NQBP_XPKG_MODEL_OUTCAST():
         return NQBP_WORK_ROOT() + os.sep + 'xinc' + os.sep + 'src'
     else:
         return NQBP_PKG_ROOT() + os.sep + 'xsrc'
@@ -84,6 +93,8 @@ def NQBP_PKG_ROOT( newval=None ):
         _NQBP_PKG_ROOT = newval
     return _NQBP_PKG_ROOT
           
+def NQBP_PKG_NAME():
+    return NQBP_PKG_ROOT().replace( NQBP_WORK_ROOT(), "" )
 #
 def NQBP_PRE_PROCESS_SCRIPT( newval=None ):
     global _NQBP_PRE_PROCESS_SCRIPT
@@ -100,15 +111,17 @@ def NQBP_PRE_PROCESS_SCRIPT_ARGS( newval=None ):
 
 
 #
-def NQBP_OUTCAST_MODE():
-    global _NQBP_OUTCAST_MODE
-    if ( _NQBP_OUTCAST_MODE == None ):
-        val = os.environ.get('NQBP_OUTCAST_MODE')
-        if ( val == None or val != 'true' ):
-            _NQBP_OUTCAST_MODE = False;
+def NQBP_XPKG_MODEL():
+    global _NQBP_XPKG_MODEL
+    if ( _NQBP_XPKG_MODEL == None ):
+        val = os.environ.get('NQBP_XPKG_MODEL')
+        if ( val == NQBP_XPKG_MODEL_OUTCAST() ):
+            _NQBP_XPKG_MODEL = NQBP_XPKG_MODEL_OUTCAST()
+        elif ( val == NQBP_XPKG_MODEL_MIXED() ):
+            _NQBP_XPKG_MODEL = NQBP_XPKG_MODEL_MIXED();
         else:
-            _NQBP_OUTCAST_MODE = True;
+            _NQBP_XPKG_MODEL = NQBP_XPKG_MODEL_LEGACY();
 
-    return _NQBP_OUTCAST_MODE
+    return _NQBP_XPKG_MODEL
     
     

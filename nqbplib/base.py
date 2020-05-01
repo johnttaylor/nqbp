@@ -49,6 +49,9 @@ from .my_globals import NQBP_PRJ_DIR
 from .my_globals import NQBP_WRKPKGS_DIRNAME
 from .my_globals import NQBP_PUBLICAPI_DIRNAME
 from .my_globals import NQBP_NAME_LIBDIRS
+from .my_globals import NQBP_XPKG_MODEL
+from .my_globals import NQBP_XPKG_MODEL_OUTCAST
+from .my_globals import NQBP_XPKG_MODEL_MIXED
 
 
 # Structure for holding build-variant specific options
@@ -349,6 +352,14 @@ class ToolChain:
         if ( arguments['--debug'] ):
             self._printer.debug( "# Final 'all_opts'" )
             self._dump_options(  self._all_opts, True )
+
+        # Replace the xpkgs/ directory with xsrc/ when NOT using the Outcast model
+        if ( NQBP_XPKG_MODEL() == NQBP_XPKG_MODEL_MIXED() ):
+            xsrc                    = NQBP_PKG_ROOT() + os.sep + NQBP_WRKPKGS_DIRNAME() + os.sep
+            self._all_opts.inc    = self._all_opts.inc.replace( NQBP_WORK_ROOT() + '/xpkgs/', xsrc )
+            self._all_opts.inc    = self._all_opts.inc.replace( NQBP_WORK_ROOT() +'\\xpkgs\\', xsrc )
+            self._all_opts.asminc = self._all_opts.asminc.replace( NQBP_WORK_ROOT() + '/xpkgs/', xsrc )
+            self._all_opts.asminc = self._all_opts.asminc.replace( NQBP_WORK_ROOT() +'\\xpkgs\\', xsrc )
             
         # Create the list of directories from libdirs.b file to run the pre-processing clean script against
         self.libdirs  = []
@@ -462,6 +473,15 @@ class ToolChain:
         self._all_opts.firstobjs = utils.replace_build_dir_symbols(self,  self._all_opts.firstobjs, libdirs, ".." )
         self._all_opts.lastobjs  = utils.replace_build_dir_symbols(self,  self._all_opts.lastobjs, libdirs, ".." )
         
+        # Replace the xpkgs/ directory with xsrc/ when NOT using the Outcast model
+        if ( NQBP_XPKG_MODEL() == NQBP_XPKG_MODEL_MIXED() ):
+            xsrc                    = NQBP_PKG_ROOT() + os.sep + NQBP_WRKPKGS_DIRNAME() + os.sep
+            self._all_opts.linklibs  = self._all_opts.linklibs.replace( NQBP_WORK_ROOT() + '/xpkgs/', xsrc )
+            self._all_opts.linklibs  = self._all_opts.linklibs.replace( NQBP_WORK_ROOT() +'\\xpkgs\\', xsrc )
+            self._all_opts.linkflags = self._all_opts.linkflags.replace( NQBP_WORK_ROOT() + '/xpkgs/', xsrc )
+            self._all_opts.linkflags = self._all_opts.linkflags.replace( NQBP_WORK_ROOT() +'\\xpkgs\\', xsrc )
+        
+
         # Return the 'all' libdirs list
         return libdirs
 

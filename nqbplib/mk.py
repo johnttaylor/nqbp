@@ -9,7 +9,42 @@
 #                       of the NQBP Python package to be used
 #
 #   OPTIONAL:
+#     NQBP_XPKG_MODEL   Used to specified what the 'model' for external handling
+#                       external and/or 3rd party source code.  The options are:
 #
+#                       'legacy'  - Assumes there is single package and external
+#                                   source code is all under the 'xsrc/' directory
+#                                   in the package.  If the environment variable
+#                                   is not set - this is the default model.
+#                               
+#                       'outcast' - Assumes packages are mounted under the
+#                                   'xpgks/' and 'xinc/' directories
+#
+#                       'mixed'   - Mixed mode attempts to support build
+#                                   scripts constructed to use the 'outcast'
+#                                   model to be auto-magically compatible when
+#                                   using the single package + xsrc/ directory
+#                                   structure. This mode is not perfect, but
+#                                   works for all currently tested use cases
+#                                   Rules for Outcast based packages:
+#                                   1) The xpackage's source code and 
+#                                      header files that are under its 'src/'
+#                                      directory are assumed to be mapped' under 
+#                                      the 'src/' directory of the single package 
+#                                   2) Anything in the xpackage that referenced
+#                                      in build scripts using the 'xpkgs/' 
+#                                      directory must be mapped under the
+#                                      'xsrc'/<package-name>' directory
+#
+#                                   NOTE: Sometimes content from a xpackage ends
+#                                         up in two places - under 'src' and
+#                                         'xsrc/'.  Did I mention that mixed
+#                                         was not perfect.
+#
+#                                   NOTE: When using MIXED mode - the developer
+#                                         should ONLY EDIT files that are part
+#                                         of the single package's file set, i.e.
+#                                         do NOT EDIT 'external' files                       
 #=============================================================================
 
 #
@@ -39,7 +74,9 @@ from .my_globals import NQBP_NAME_SOURCES
 from .my_globals import NQBP_PRE_PROCESS_SCRIPT
 from .my_globals import NQBP_PRE_PROCESS_SCRIPT_ARGS
 from .my_globals import NQBP_NAME_LIBDIRS
-from .my_globals import NQBP_OUTCAST_MODE
+from .my_globals import NQBP_XPKG_MODEL
+from .my_globals import NQBP_XPKG_MODEL_OUTCAST
+from .my_globals import NQBP_XPKG_MODEL_MIXED
 
 
 
@@ -126,8 +163,10 @@ Notes:
     the environment variable NQBP_CMD_OPTIONS (when set to '-1') can be used to
     apply the '-1' option to every build.
 
-    When the environment variable NQBP_OUTCAST_MODE is set to 'true' then NQBP
-    assumes that the Outcast paradigm (of xpkgs/ & xinc/) for external packages.
+    When the environment variable NQBP_XPKG_MODEL is set to 'outcast' then 
+    NQBP assumes that the Outcast paradigm (of xpkgs/ & xinc/) for external 
+    packages. Values of 'mixed' or 'legacy' NQPB will uses the xsrc/ directory
+    (under the current package) paradigm.
        
 Examples:
 
@@ -160,8 +199,7 @@ def build( argv, toolchain ):
 
     # Query External Package handling mode
     if ( arguments['--qry-model'] ):
-        mode = "Outcast (xpkgs/ & xinc/)" if NQBP_OUTCAST_MODE() else "Legacy (xsrc/)"
-        printer.output( "External Package Model: " + mode )
+        printer.output( "External Package Model: " + NQBP_XPKG_MODEL() )
         sys.exit()
         
     # Does the specified variant exist

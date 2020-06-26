@@ -5351,7 +5351,7 @@ html .solidborders td {  border: 1px solid black; }</pre>
 <div modified="20190112022928289" title="$:/state/toc/Overview-Using NQBP--242358753">
 <pre>open</pre>
 </div>
-<div list="Overview [[External Package Model]]" title="$:/StoryList">
+<div list="Overview [[NQBP History]] [[External Package Model]]" title="$:/StoryList">
 <pre></pre>
 </div>
 <div created="20141011164829984" modified="20141020024516096" title="$:/temp/advancedsearch">
@@ -5603,8 +5603,8 @@ There is short-cut to including all of the object module in a directory using th
 ''Note:''  It is recommended that the above method be used instead of `base_release.firstobjs = '../src/Cpl/Rte/Mp/_0test/*.o'`.
   This is because the Windows command shell does ''not'' expand wildcards as a Linux/Unix shell does.  For example the above `*.o` notation does not work with the Mingw GCC compiler when running under Windows (however it does work with the Visual Studio compiler because Microsoft compiler does the wildcard expansion itself).</pre>
 </div>
-<div created="20140727034237559" creator="JohnTaylor" modified="20141228154154090" modifier="JohnTaylor" tags="Overview" title="NQBP History">
-<pre>Why NQBP?  First we need to start with [[Benv|http://mnmoran.org/benvman.html]].  Benv is build engine that was developed to 'free' developers from authoring makefile and provide a simple and resusable method for building C/C++ source code.  Benv was originally develop for *NIX platforms.  A [[fork|http://sourceforge.net/projects/openrepo]] of the project ported Benv to run on Windows.  A principle issue with running Benv on Windows is that because of Benv's root, the Windows port relies on the [[Cygwin.dll|http://www.cygwin.com]].  Cygwin is great alternative for running in a Linux like environment on a Windows box - but it does incur a performance hit.  
+<div created="20140727034237559" creator="JohnTaylor" modified="20200501231034687" modifier="JohnTaylor" tags="Overview" title="NQBP History">
+<pre>Why NQBP?  First we need to start with [[Benv|http://mnmoran.org/benvman.html]].  Benv is build engine that was developed to 'free' developers from authoring makefile and provide a simple and resusable method for building C/C++ source code.  Benv was originally develop for *NIX platforms.  A [[fork|http://sourceforge.net/projects/openrepo]] of the project ported Benv to run on Windows.  A principle issue with running Benv on Windows is that because of Benv's *NIX roots, the Windows port relies on the [[Cygwin.dll|http://www.cygwin.com]].  Cygwin is great alternative for running in a Linux like environment on a Windows box - but it does incur a performance hit.  
 
 Some time later I was working on a personal project and needed a build environment to compile example programs under Windows.  Benv was my first choice, but the overhead of installing it and slow performance on Windows made it not feasible for the project. However, creating a very light weight, &quot;Benv Like&quot; Windows only solution was something that fit the time frame/scope of the project. Thus the idea of ~Not-Quite-Benv was born, i.e. a build environment that provides the same core concepts ''and'' co-exist with Benv - but ''without'' the performance penalty.  The end was product was a Windows/DOS batch based build engine that consumed the same core input files (lists of which source files to build, etc.) as Benv that had extremely fast build times.  The faster build times where accomplished by using Windows native batch files and by __omitting __any/all dependency checking, i.e. NQB built all files (almost) all the time.  For my project, building all the files all the time was a non-issue since the programs were small.  In addition, I found that for several embedded open source projects I worked on, NQB could build all files, faster than running Benv under Windows with full dependency checking and only building the set of changed files. 
 

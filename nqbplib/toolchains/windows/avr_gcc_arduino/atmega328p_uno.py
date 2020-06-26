@@ -15,14 +15,14 @@ from nqbplib import my_globals
 class ToolChain( base.ToolChain ):
 
     #--------------------------------------------------------------------------
-    def __init__( self, exename, prjdir, build_variants, env_tools, env_support, default_variant='release', env_error=None ):
+    def __init__( self, exename, prjdir, build_variants, env_tools, env_support, env_cc_ver, env_bsp_ver, default_variant='release', env_error=None ):
         base.ToolChain.__init__( self, exename, prjdir, build_variants, default_variant )
         self._ccname   = 'AVR-GCC-ATMega328p Ardunio'
-        self._cc       = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc' )
-        self._asm      = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc' )
-        self._ld       = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc' )
-        self._ar       = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc-ar' )
-        self._objcpy   = os.path.join( env_tools, 'hardware', 'tools', 'avr', 'bin', 'avr-objcopy' )
+        self._cc       = os.path.join( env_tools, env_cc_ver, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc' )
+        self._asm      = os.path.join( env_tools, env_cc_ver, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc' )
+        self._ld       = os.path.join( env_tools, env_cc_ver, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc' )
+        self._ar       = os.path.join( env_tools, env_cc_ver, 'hardware', 'tools', 'avr', 'bin', 'avr-gcc-ar' )
+        self._objcpy   = os.path.join( env_tools, env_cc_ver, 'hardware', 'tools', 'avr', 'bin', 'avr-objcopy' )
 
         self._asm_ext  = 'asm'    
         self._asm_ext2 = 'S'   
@@ -30,14 +30,14 @@ class ToolChain( base.ToolChain ):
         # Cache potential error for environment variables not set
         self._env_error = env_error;
 
-        self._clean_pkg_dirs.extend( ['arduino'] )
+        self._clean_pkg_dirs.extend( ['arduino', '_arduino'] )
 
         # set the name of the linker output (not the final output)
         self._link_output = '-o ' + exename + '.elf'
 
         # Define paths
-        core_path     = os.path.join(my_globals.NQBP_WORK_ROOT(), env_support, 'arduino', 'hardware', 'avr', 'cores', 'arduino' )
-        hardware_path = os.path.join(my_globals.NQBP_WORK_ROOT(), env_support, 'arduino', 'hardware', 'avr', 'variants', 'standard' )
+        core_path     = os.path.join(my_globals.NQBP_WORK_ROOT(), env_support, 'arduino', 'hardware', 'avr', env_bsp_ver, 'cores', 'arduino' )
+        hardware_path = os.path.join(my_globals.NQBP_WORK_ROOT(), env_support, 'arduino', 'hardware', 'avr', env_bsp_ver, 'variants', 'standard' )
         self._base_release.inc = self._base_release.inc + " -I{} -I{} ".format(core_path, hardware_path) 
 
         # 

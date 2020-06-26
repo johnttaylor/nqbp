@@ -49,6 +49,9 @@ from .my_globals import NQBP_PRJ_DIR
 from .my_globals import NQBP_WRKPKGS_DIRNAME
 from .my_globals import NQBP_PUBLICAPI_DIRNAME
 from .my_globals import NQBP_NAME_LIBDIRS
+from .my_globals import NQBP_XPKG_MODEL
+from .my_globals import NQBP_XPKG_MODEL_OUTCAST
+from .my_globals import NQBP_XPKG_MODEL_MIXED
 
 
 # Structure for holding build-variant specific options
@@ -164,14 +167,15 @@ class ToolChain:
         #       - Package source directory
         #       - Project directory                 
         #       - Workspace Public Include directory
+        #       - Legacy 'xsrc' Third party source tree
         #
         self._base_release = BuildValues()
-        self._base_release.inc       = '-I. -I{}{}src  -I{} -I{}{}{}{}src'.format(NQBP_PKG_ROOT(),os.sep, prjdir, NQBP_WORK_ROOT(),os.sep,NQBP_PUBLICAPI_DIRNAME(),os.sep  )
+        self._base_release.inc       = '-I. -I{}{}src  -I{} -I{}'.format(NQBP_PKG_ROOT(),os.sep, prjdir, NQBP_PUBLICAPI_DIRNAME()  )
         self._base_release.asminc    = self._base_release.inc
         self._base_release.cflags    = '-c -DBUILD_TIME_UTC={:d} '.format(self._build_time_utc)
         self._base_release.asmflags  = self._base_release.cflags
         #self._base_release.linklibs  = '-L lib -Wl,-lstdc++'
-        self._base_release.linklibs  = '-Wl,-lstdc++'
+        self._base_release.linklibs  = '-Wl,-lstdc++ -Wl,-lm'
         
         # Optimized options, flags, etc.
         self._optimized_release = BuildValues()
@@ -208,7 +212,15 @@ class ToolChain:
         
     
     #--------------------------------------------------------------------------
-    def clean(self, pkg, ext, abs, silent=False):
+    def clean(self, pkg, ext, abs, silent=False, blddir=True):
+        if ( blddir == True ):
+            if ( not silent ):
+                self._printer.output( "= Cleaning Built artifacts..." )
+            # remove output/build variant directory
+            vardir = '_' + self._bld
+            self._printer.debug( '# Cleaning directory: {}'.format( vardir ) )
+            if ( os.path.exists(vardir) ):
+                shutil.rmtree( vardir, True )   
 
         if ( pkg == True ):
             if ( not silent ):
@@ -223,11 +235,6 @@ class ToolChain:
                 if ( os.path.exists(d) ):
                     shutil.rmtree( d, True )
 
-            # remove output/build variant directory
-            vardir = '_' + self._bld
-            if ( os.path.exists(vardir) ):
-                shutil.rmtree( vardir, True )
-                            
         if ( ext == True ):
             if ( not silent ):
                 self._printer.output( "= Cleaning External Package derived objects..." )
@@ -345,13 +352,22 @@ class ToolChain:
         if ( arguments['--debug'] ):
             self._printer.debug( "# Final 'all_opts'" )
             self._dump_options(  self._all_opts, True )
+
+        # Replace the xpkgs/ directory with xsrc/ when NOT using the Outcast model
+        if ( NQBP_XPKG_MODEL() == NQBP_XPKG_MODEL_MIXED() ):
+            xsrc                    = NQBP_PKG_ROOT() + os.sep + NQBP_WRKPKGS_DIRNAME() + os.sep
+            self._all_opts.inc    = self._all_opts.inc.replace( NQBP_WORK_ROOT() + '/xpkgs/', xsrc )
+            self._all_opts.inc    = self._all_opts.inc.replace( NQBP_WORK_ROOT() +'\\xpkgs\\', xsrc )
+            self._all_opts.asminc = self._all_opts.asminc.replace( NQBP_WORK_ROOT() + '/xpkgs/', xsrc )
+            self._all_opts.asminc = self._all_opts.asminc.replace( NQBP_WORK_ROOT() +'\\xpkgs\\', xsrc )
             
         # Create the list of directories from libdirs.b file to run the pre-processing clean script against
         self.libdirs  = []
         self.libnames = []
-        inf = open( NQBP_NAME_LIBDIRS(), 'r' )
-        utils.create_working_libdirs( self._printer, inf, arguments, self.libdirs, self.libnames, 'local', bld_var )  
-        inf.close()
+        if ( not arguments['--clean-all'] ):        # Skip if doing a --clean-all
+            inf = open( NQBP_NAME_LIBDIRS(), 'r' )
+            utils.create_working_libdirs( self._printer, inf, arguments, self.libdirs, self.libnames, 'local', bld_var )  
+            inf.close()
 
     #--------------------------------------------------------------------------
     def ar( self, arguments ):
@@ -363,7 +379,7 @@ class ToolChain:
         utils.delete_file( self._ar_library_name )
         
         # Get all object files
-        objs = utils.dir_list_filter_by_ext( ".", [self._obj_ext] )
+        objs = utils.dir_list_filter_by_ext( ".", [self._obj_ext], derivedDir=True )
        
         # build archive string
         cmd = self._ar + ' ' + self._ar_options
@@ -450,13 +466,22 @@ class ToolChain:
         # Set my command options to construct an 'all' libdirs list
         libdirs  = []
         libnames = []
-        myargs   = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False }
+        myargs   = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False, '-q':None, '-Q':None }
         utils.create_working_libdirs( self._printer, inf, myargs, libdirs, libnames, local_external_setting, variant )  
         
         # Expand any _BUILD_DIR.aaaa symbols for .firstobjs and .lastobjs
         self._all_opts.firstobjs = utils.replace_build_dir_symbols(self,  self._all_opts.firstobjs, libdirs, ".." )
         self._all_opts.lastobjs  = utils.replace_build_dir_symbols(self,  self._all_opts.lastobjs, libdirs, ".." )
         
+        # Replace the xpkgs/ directory with xsrc/ when NOT using the Outcast model
+        if ( NQBP_XPKG_MODEL() == NQBP_XPKG_MODEL_MIXED() ):
+            xsrc                    = NQBP_PKG_ROOT() + os.sep + NQBP_WRKPKGS_DIRNAME() + os.sep
+            self._all_opts.linklibs  = self._all_opts.linklibs.replace( NQBP_WORK_ROOT() + '/xpkgs/', xsrc )
+            self._all_opts.linklibs  = self._all_opts.linklibs.replace( NQBP_WORK_ROOT() +'\\xpkgs\\', xsrc )
+            self._all_opts.linkflags = self._all_opts.linkflags.replace( NQBP_WORK_ROOT() + '/xpkgs/', xsrc )
+            self._all_opts.linkflags = self._all_opts.linkflags.replace( NQBP_WORK_ROOT() +'\\xpkgs\\', xsrc )
+        
+
         # Return the 'all' libdirs list
         return libdirs
 
@@ -517,7 +542,7 @@ class ToolChain:
 
     #--------------------------------------------------------------------------
     def _build_prjobjs_list( self ):
-        list = utils.dir_list_filter_by_ext( '..' + os.sep, [self._obj_ext] )
+        list = utils.dir_list_filter_by_ext( '..' + os.sep, [self._obj_ext], derivedDir=True )
         path = ''
         for i in list:
             path += ' ..' + os.sep + i

@@ -8,7 +8,8 @@ import subprocess
 import pathlib
 import platform
 import collections
-
+import fnmatch
+import re
 
 # Globals
 from .my_globals import NQBP_WORK_ROOT
@@ -24,6 +25,9 @@ from .my_globals import NQBP_WRKPKGS_DIRNAME
 from .my_globals import NQBP_PRE_PROCESS_SCRIPT
 from .my_globals import NQBP_PRE_PROCESS_SCRIPT_ARGS
 from .my_globals import OUT
+from .my_globals import NQBP_XPKG_MODEL
+from .my_globals import NQBP_XPKG_MODEL_MIXED
+from .my_globals import NQBP_XPKG_MODEL_OUTCAST
 
 # Module globals
 _dirstack = []
@@ -32,17 +36,23 @@ verbose_mode = False
 
 
 #-----------------------------------------------------------------------------
-def dir_list_filter_by_ext(dir, exts): 
+def dir_list_filter_by_ext(dir, exts, derivedDir=False): 
     """Returns a list of files filter by the passed file extensions
     
     Accepts one or more file extensions (with no '.') 
     """
-    
+
     results = []
-    for name in os.listdir(dir):
-        for e in exts:
-            if ( name.endswith("." + e) ):
-                results.append(name)
+    try:
+        for name in os.listdir(dir):
+            for e in exts:
+                if ( name.endswith("." + e) ):
+                    results.append(name)
+    except:
+        if ( derivedDir ):
+            sys.exit("ERROR: Derived/Built directory '{}' does not exist".format( dir ))
+        else:
+            sys.exit("ERROR: Source directory '{}' does not exist".format( dir ))
 
     return results
 
@@ -51,8 +61,8 @@ def get_objects_list( objext, objpath, new_root ):
     """ Returns a list (as a single string) of object files for specified object 
         path with each object having the 'new_root' appended to it path.
     """
-    files = dir_list_filter_by_ext( objpath, objext.split() )
 
+    files = dir_list_filter_by_ext( objpath, objext.split(), derivedDir=True )
     objs  = '';
     for f in files:
         basename = os.path.splitext(f)[0]
@@ -117,7 +127,7 @@ def del_files_by_ext(dir, *exts):
     Accepts one or more file extensions (with no '.') 
     """
 
-    files_to_delete = dir_list_filter_by_ext( dir, *exts )
+    files_to_delete = dir_list_filter_by_ext( dir, *exts, derivedDir=True )
     for f in files_to_delete:
         delete_file(f)
 
@@ -164,7 +174,8 @@ def create_working_libdirs( printer, inf, arguments, libdirs, libnames, local_ex
         line      = standardize_dir_sep( line.strip() )
         entry     = local_external_flag
         newparent = parent
-        
+        path      = ''
+
         # drop comments and blank lines
         if ( line.startswith('#') ):
             continue
@@ -184,6 +195,18 @@ def create_working_libdirs( printer, inf, arguments, libdirs, libnames, local_ex
             line = line.split(']')[1].strip()
             
             
+        # Attempt cross compatibility between the Legacy and Outcast model with respect to external packages
+        if ( NQBP_XPKG_MODEL() == NQBP_XPKG_MODEL_MIXED() ):
+            if ( line.startswith(os.sep + os.sep) ):
+                path  = NQBP_PKG_ROOT() + os.sep
+                parts = path_split_all(line[2:])
+                if ( len(parts) > 1 ):
+                    if ( parts[1] == 'src' ):
+                        line = os.sep.join( parts[1:] )
+                    else:
+                        line = 'xsrc' + os.sep + parts[0] + os.sep + os.sep.join( parts[1:] )
+
+
         # Calc root/leading path    
         if ( line.startswith(os.sep+os.sep) ):
             path      = os.path.join(NQBP_WORK_ROOT(), NQBP_WRKPKGS_DIRNAME() ) + os.sep
@@ -259,6 +282,10 @@ def create_working_libdirs( printer, inf, arguments, libdirs, libnames, local_ex
         elif ( arguments['-x'] and entry != 'xpkg' ):
             pass
         elif ( arguments['--noabs'] and entry == 'absolute' ):
+            pass
+        elif ( arguments['-q'] != None and not arguments['-q'] in line ):
+            pass
+        elif ( arguments['-Q'] != None and re.search( arguments['-Q'], line ) == None ):
             pass
         else:
             libdirs.append( ((line, srctype, srclist), entry) )
@@ -483,7 +510,21 @@ def pop_dir():
     global _dirstack
     os.chdir( _dirstack.pop() )
     
-    
+def path_split_all(path):
+    allparts = []
+    while 1:
+        parts = os.path.split(path)
+        if parts[0] == path:  # sentinel for absolute paths
+            allparts.insert(0, parts[0])
+            break
+        elif parts[1] == path: # sentinel for relative paths
+            allparts.insert(0, parts[1])
+            break
+        else:
+            path = parts[0]
+            allparts.insert(0, parts[1])
+    return allparts    
+
 #-----------------------------------------------------------------------------
 #
 def derive_src_path( pkg_root, work_root, pkgs_dirname, entry, dir ):

@@ -9,7 +9,42 @@
 #                       of the NQBP Python package to be used
 #
 #   OPTIONAL:
+#     NQBP_XPKG_MODEL   Used to specified what the 'model' for external handling
+#                       external and/or 3rd party source code.  The options are:
 #
+#                       'legacy'  - Assumes there is single package and external
+#                                   source code is all under the 'xsrc/' directory
+#                                   in the package.  If the environment variable
+#                                   is not set - this is the default model.
+#                               
+#                       'outcast' - Assumes packages are mounted under the
+#                                   'xpgks/' and 'xinc/' directories
+#
+#                       'mixed'   - Mixed mode attempts to support build
+#                                   scripts constructed to use the 'outcast'
+#                                   model to be auto-magically compatible when
+#                                   using the single package + xsrc/ directory
+#                                   structure. This mode is not perfect, but
+#                                   works for all currently tested use cases
+#                                   Rules for Outcast based packages:
+#                                   1) The xpackage's source code and 
+#                                      header files that are under its 'src/'
+#                                      directory are assumed to be mapped' under 
+#                                      the 'src/' directory of the single package 
+#                                   2) Anything in the xpackage that referenced
+#                                      in build scripts using the 'xpkgs/' 
+#                                      directory must be mapped under the
+#                                      'xsrc'/<package-name>' directory
+#
+#                                   NOTE: Sometimes content from a xpackage ends
+#                                         up in two places - under 'src' and
+#                                         'xsrc/'.  Did I mention that mixed
+#                                         was not perfect.
+#
+#                                   NOTE: When using MIXED mode - the developer
+#                                         should ONLY EDIT files that are part
+#                                         of the single package's file set, i.e.
+#                                         do NOT EDIT 'external' files                       
 #=============================================================================
 
 #
@@ -39,6 +74,9 @@ from .my_globals import NQBP_NAME_SOURCES
 from .my_globals import NQBP_PRE_PROCESS_SCRIPT
 from .my_globals import NQBP_PRE_PROCESS_SCRIPT_ARGS
 from .my_globals import NQBP_NAME_LIBDIRS
+from .my_globals import NQBP_XPKG_MODEL
+from .my_globals import NQBP_XPKG_MODEL_OUTCAST
+from .my_globals import NQBP_XPKG_MODEL_MIXED
 
 
 
@@ -81,13 +119,15 @@ Arguments:
                    building directories once 'DIR' has been built. Note: 'DIR' 
                    is with respect to the expanded list of directories, i.e. 
                    after any included libdirs.b files are expanded.
+  -q STR           Only builds directories that contain 'STR' in their name/path
+  -Q STRX          Same as '-q', except 'STRX' is a regular expression.
   -p               Skips all external directories and/or libdirs.b files.
   -x               Skips all the package's directories and/or libdirs.b files
   -a, --noabs      Skips (and does not clean) all absolute directories
   -m               Compiles all of the project directory.
   -g               Debug build (default is release build.
   -v               Display Compiler/linker options.
-  -l               Link ONLY (can be combinded with '-mpxdfse' options).
+  -l               Link ONLY (can be combinded with '-mpxdfseqQ' options).
   -k               Cleans only the package's objects/files (use with '-p')
   -j               Cleans only the external objects/files (use with '-x').
   -1               Suppresses the use of multiple processes when building.
@@ -110,19 +150,25 @@ Arguments:
                    build variant) referenced in the libdirs.b file.
   --qry-dirs2      Same as --qry-dirs with the addition of the any source file
                    include/exclude info
+  --qry-model      Returns the Outcast vs Legacy model for external packages.
   -h,--help        Display help.
   --version        Display version number.
 
 Notes:
     Default operation is to do an implicit BUILD ALL and CLEAN ALL on each 
     build.  The exception to this rule is when one of the following options are  
-    specified: -d, -f, -s, -e, -p, -x, -m, -l, -k, -j   
+    specified: -d, -f, -s, -e, -p, -x, -m, -l, -k, -j -q -Q 
   
     By default, NQBP will attempt to build all files in a single directory in
     parallel. However, not all compilers deal well with parallel building (i.e
     the crash). The '-1' option will suppress all parallel building.  In addition 
     the environment variable NQBP_CMD_OPTIONS (when set to '-1') can be used to
     apply the '-1' option to every build.
+
+    When the environment variable NQBP_XPKG_MODEL is set to 'outcast' then 
+    NQBP assumes that the Outcast paradigm (of xpkgs/ & xinc/) for external 
+    packages. Values of 'mixed' or 'legacy' NQPB will uses the xsrc/ directory
+    (under the current package) paradigm.
        
 Examples:
 
@@ -143,7 +189,7 @@ def build( argv, toolchain ):
 
     # Process command line args...
     arguments = docopt(usage, argv=rawinput, version=NQBP_VERSION() )
-    
+
     # Allow the '--turbo' option to override the '-1' option
     if ( arguments['--turbo'] ):
         arguments['-1'] = False
@@ -153,6 +199,11 @@ def build( argv, toolchain ):
     printer = Printer( multiprocessing.Lock(), logfile, start_new_file=True );
     toolchain.set_printer( printer )
 
+    # Query External Package handling mode
+    if ( arguments['--qry-model'] ):
+        printer.output( "External Package Model: " + NQBP_XPKG_MODEL() )
+        sys.exit()
+        
     # Does the specified variant exist
     if ( arguments['--try'] != None ):
         if ( not arguments['--try'] in toolchain.get_variants() ):
@@ -171,7 +222,7 @@ def build( argv, toolchain ):
     # Pre-build steps
     pre_build_steps( printer, toolchain, arguments )
     printer.debug( str(arguments) )
-
+    
     # Process 'non-build' options
     if ( arguments['--qry-blds'] ):
         toolchain.list_variants()
@@ -248,7 +299,7 @@ def do_build( printer, toolchain, arguments, variant ):
     stop      = False
     
     # Skip cleaning when selective building of libdirs.b
-    if ( arguments['-p'] or arguments['-x'] or arguments['-s']  or arguments['-e'] or arguments['--noabs']):
+    if ( arguments['-p'] or arguments['-x'] or arguments['-s']  or arguments['-e'] or arguments['--noabs'] or arguments['-q'] or arguments['-Q']):
         clean_pkg = clean_ext = clean_abs = False
         
     # Compile only a single file    
@@ -256,6 +307,10 @@ def do_build( printer, toolchain, arguments, variant ):
         clean_pkg = clean_ext = clean_abs = bld_prj = do_link = bld_libs = False
         build_single_file( printer, arguments, toolchain )
         
+    # Don't automatically build the project directory OR link when using the -s -e -q -Q options
+    if ( arguments['-s']  or arguments['-e'] or arguments['-q'] or arguments['-Q']):
+        bld_prj = do_link = False
+
     # Compile only a single directory    
     if ( arguments['-d'] ):
         clean_pkg = clean_ext = clean_abs = bld_prj = do_link = bld_libs = False
@@ -304,11 +359,11 @@ def do_build( printer, toolchain, arguments, variant ):
         clean_pkg = clean_ext = clean_abs = bld_libs = bld_prj = False
 
         # fix race condition between the -l and -m options
-        if ( arguments['-m'] or arguments['-x'] or arguments['-p']  ):
+        if ( arguments['-m'] or arguments['-x'] or arguments['-p'] ):
             bld_prj = True
             
         # fix race condition between the -l and -px|-s|-e options
-        if ( arguments['-x'] or arguments['-p'] or arguments['-s'] or arguments['-e'] ):
+        if ( arguments['-x'] or arguments['-p'] or arguments['-s'] or arguments['-e'] or arguments['-q'] or arguments['-Q'] ):
             bld_libs = True
 
     # Trap the clean options 

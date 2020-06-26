@@ -227,7 +227,11 @@ Error message and password prompt
 
 <li>$:/state/toc/Contents-Intro--966365951</li>
 
+<li>$:/state/toc/Contents-Overview--1025088837</li>
+
 <li>$:/state/toc/Contents-Overview--242358753</li>
+
+<li>$:/state/toc/Contents-Using NQBP--1025088837</li>
 
 <li>$:/state/toc/Contents-Using NQBP--242358753</li>
 
@@ -265,6 +269,8 @@ Error message and password prompt
 
 <li>Adding a new Toolchain</li>
 
+<li>External Package Model</li>
+
 <li>Installing NQBP</li>
 
 <li>LeftMenu</li>
@@ -278,6 +284,8 @@ Error message and password prompt
 <li>NQBP History</li>
 
 <li>Overview</li>
+
+<li>Preprocessing Scripts</li>
 
 <li>Running NQBP</li>
 
@@ -5328,16 +5336,22 @@ html .solidborders td {  border: 1px solid black; }</pre>
 <div modified="20141011172627069" title="$:/state/toc/Contents-Intro--966365951">
 <pre>open</pre>
 </div>
+<div modified="20200421034642586" title="$:/state/toc/Contents-Overview--1025088837">
+<pre>open</pre>
+</div>
 <div modified="20190112030821518" title="$:/state/toc/Contents-Overview--242358753">
 <pre>close</pre>
 </div>
-<div modified="20190112030822546" title="$:/state/toc/Contents-Using NQBP--242358753">
-<pre>close</pre>
+<div modified="20200421034638993" title="$:/state/toc/Contents-Using NQBP--1025088837">
+<pre>open</pre>
+</div>
+<div modified="20200421034705726" title="$:/state/toc/Contents-Using NQBP--242358753">
+<pre>open</pre>
 </div>
 <div modified="20190112022928289" title="$:/state/toc/Overview-Using NQBP--242358753">
 <pre>open</pre>
 </div>
-<div list="[[Using NQBP]] Linking Overview" title="$:/StoryList">
+<div list="Overview [[NQBP History]] [[External Package Model]]" title="$:/StoryList">
 <pre></pre>
 </div>
 <div created="20141011164829984" modified="20141020024516096" title="$:/temp/advancedsearch">
@@ -5471,6 +5485,23 @@ html .solidborders td {  border: 1px solid black; }</pre>
 # In the file //toolchain_name// create a new python class that inherits from &lt;code&gt;base.~ToolChain&lt;/code&gt; and that  implements the details for your compiler. 
 # Create a templace file name //toolchain_name mytoolchain// in the same directory as the //toolchain_name// file.  This file is the template for a project's &lt;code&gt;mytoolchain.py&lt;/code&gt; file that will be using the new compiler toolchain.</pre>
 </div>
+<div created="20200421035359045" modified="20200501230759063" tags="Usage [[Using NQBP]]" title="External Package Model">
+<pre>NQBP supports multiple models for how external source code is handled.  The model is selected by setting the environment variable `NQBP_XPKG_MODEL`.  If the variable is not set (or set to unsupported value), then the external source model is set to `legacy`
+
+* `legacy`
+** All source code including external/third-party is located in under a single root directory, i.e. the //Package// directory.
+** All //native// source code is located under the `src/` directory in the Package's root directory.
+** External/third-party source code is stored/located under `xsrc/` directory in the Package's root directory.
+** The `xsrc/` directory is included in the header search path (after the `src/` directory).
+
+* `outcast`
+** External/third-part source is mapped into the //Workspace// using the Outcast tools (e.g. `orc mount colony.core`)
+*** Outcast allow for selection of released packages and/or local snapshots pulled directly from a SCM repository
+**All external packages are //mapped// under the `xpkgs/` and `xinc/` directories.
+
+* `mixed`
+** Attempts to support Outcast //referencing// of the `xpkgs/` and `xinc/` directories while using the //legacy// model.  This model is ''experimental'' and requires manual placement of the external Outcast packages into the single root directory.  ''Do NOT use this model unless you truly know what you are doing''.</pre>
+</div>
 <div created="20140727042146669" creator="JohnTaylor" modified="20141020024342245" modifier="JohnTaylor" tags="Overview" title="Installing NQBP">
 <pre>!!TODO: specific install instructions once hosted on somewhere on the web
 
@@ -5572,8 +5603,8 @@ There is short-cut to including all of the object module in a directory using th
 ''Note:''  It is recommended that the above method be used instead of `base_release.firstobjs = '../src/Cpl/Rte/Mp/_0test/*.o'`.
   This is because the Windows command shell does ''not'' expand wildcards as a Linux/Unix shell does.  For example the above `*.o` notation does not work with the Mingw GCC compiler when running under Windows (however it does work with the Visual Studio compiler because Microsoft compiler does the wildcard expansion itself).</pre>
 </div>
-<div created="20140727034237559" creator="JohnTaylor" modified="20141228154154090" modifier="JohnTaylor" tags="Overview" title="NQBP History">
-<pre>Why NQBP?  First we need to start with [[Benv|http://mnmoran.org/benvman.html]].  Benv is build engine that was developed to 'free' developers from authoring makefile and provide a simple and resusable method for building C/C++ source code.  Benv was originally develop for *NIX platforms.  A [[fork|http://sourceforge.net/projects/openrepo]] of the project ported Benv to run on Windows.  A principle issue with running Benv on Windows is that because of Benv's root, the Windows port relies on the [[Cygwin.dll|http://www.cygwin.com]].  Cygwin is great alternative for running in a Linux like environment on a Windows box - but it does incur a performance hit.  
+<div created="20140727034237559" creator="JohnTaylor" modified="20200501231034687" modifier="JohnTaylor" tags="Overview" title="NQBP History">
+<pre>Why NQBP?  First we need to start with [[Benv|http://mnmoran.org/benvman.html]].  Benv is build engine that was developed to 'free' developers from authoring makefile and provide a simple and resusable method for building C/C++ source code.  Benv was originally develop for *NIX platforms.  A [[fork|http://sourceforge.net/projects/openrepo]] of the project ported Benv to run on Windows.  A principle issue with running Benv on Windows is that because of Benv's *NIX roots, the Windows port relies on the [[Cygwin.dll|http://www.cygwin.com]].  Cygwin is great alternative for running in a Linux like environment on a Windows box - but it does incur a performance hit.  
 
 Some time later I was working on a personal project and needed a build environment to compile example programs under Windows.  Benv was my first choice, but the overhead of installing it and slow performance on Windows made it not feasible for the project. However, creating a very light weight, &quot;Benv Like&quot; Windows only solution was something that fit the time frame/scope of the project. Thus the idea of ~Not-Quite-Benv was born, i.e. a build environment that provides the same core concepts ''and'' co-exist with Benv - but ''without'' the performance penalty.  The end was product was a Windows/DOS batch based build engine that consumed the same core input files (lists of which source files to build, etc.) as Benv that had extremely fast build times.  The faster build times where accomplished by using Windows native batch files and by __omitting __any/all dependency checking, i.e. NQB built all files (almost) all the time.  For my project, building all the files all the time was a non-issue since the programs were small.  In addition, I found that for several embedded open source projects I worked on, NQB could build all files, faster than running Benv under Windows with full dependency checking and only building the set of changed files. 
 
@@ -5581,7 +5612,7 @@ The NQB concept worked well - especially for embedded development or smallish pr
 
 //For those who are overly curious the 'Not-Quite' paradigm was inspired by Not-Quite-C.  I'll leave the details/origins of NQC to the readers.//</pre>
 </div>
-<div created="20140726152202471" creator="JohnTaylor" modified="20141228164054310" modifier="JohnTaylor" tags="Contents" title="Overview">
+<div created="20140726152202471" creator="JohnTaylor" modified="20200421040803033" modifier="JohnTaylor" tags="Contents" title="Overview">
 <pre>!NQBP stands for (N)ot (Q)uite (B)env - (P)ython.  
 
 !!NQBP is a multi-host build engine designed for:
@@ -5595,7 +5626,7 @@ The NQB concept worked well - especially for embedded development or smallish pr
 * Source code resusablilty, i.e. NQBP assumes that code is/will be shared across many projects.
 * Resusablilty of Compiler toolchains, i.e once a particular compiler toolchain has been created/defined - it can be reused across an unlimited number of projects.
 * Very effective on small to medium size projects
-* Supports building in [[Outcast|http://integerfox.com/outcast/index.html]]
+* Supports building in [[Outcast|http://integerfox.com/outcast/index.html]] as well as its //Legacy// model for external source code.
 
 
 !!NQBP is not:
@@ -5606,6 +5637,60 @@ The NQB concept worked well - especially for embedded development or smallish pr
 For those interested the back story for NQBP can be found [[here|NQBP History]].
 
 {{LeftMenu}}</pre>
+</div>
+<div created="20200421040908585" modified="20200421042317882" tags="Usage [[Using NQBP]]" title="Preprocessing Scripts">
+<pre>NQBP supports the ability to run //pre-processing scripts// prior to the compile stage.  This allows NQBP to work with code bases that use auto-generate additional source code files based on the developer authored source code.  An example of this is running [[QT's Moc compiler|[https://doc.qt.io/qt-5/moc.html]] with each build.
+
+!!!How it works
+
+* Place the pre-processing script in each source directory that requires one.
+** The name of the pre-processing scripts must all be same for a given project/test build.  
+** The name of pre-processing script is specified in the projects' mytoolchain.py script
+* When building a given source directory that contains the specified pre-processing script - the script is executed before any compiling occurs for that directory
+** The same sequence occurs when NQBP //cleans// a directory - it calls the pre-processing script (with an argument to identify it should clean the directory).
+
+!!! Example pre-processing script
+```
+#!/usr/bin/python3
+#---------------------------------------------------------------------------
+# This is example python script that NQBP can/will call BEFORE invoking the
+# compiler toolchain.  The script should be placed in every source directory 
+# that NQBP builds that REQUIRES the pre-processing step.  
+#
+# In order to enable the pre-processing actions, the project's mytoolchain.py
+# need to be updated with the following statements:
+#
+#   from nqbplib.my_globals import NQBP_PRE_PROCESS_SCRIPT
+#   from nqbplib.my_globals import NQBP_PRE_PROCESS_SCRIPT_ARGS
+#   NQBP_PRE_PROCESS_SCRIPT( &quot;&lt;preprocess-script.py&gt;&quot; )  # i.e the name of this script
+#   NQBP_PRE_PROCESS_SCRIPT_ARGS(&quot;&lt;arg7&gt; &lt;arg8&gt; ...&quot;)    # project specific arguments pass to the script
+#
+# NOTE: The script is ALWAYS passed &lt;arg1&gt; ... &lt;arg6&gt; where:
+#             &lt;arg1&gt;: build|clean         
+#             &lt;arg2&gt;: verbose|terse
+#             &lt;arg3&gt;: &lt;workspace-dir&gt;
+#             &lt;arg4&gt;: &lt;package-dir&gt; 
+#             &lt;arg5&gt;: &lt;project-dir&gt; 
+#             &lt;arg6&gt;: &lt;current-dir&gt; 
+#
+# Since the &lt;preprocess-script.py&gt; script MUST be in every (desired) source 
+# directory, users are encouraged that the &lt;preprocess-script.py&gt; ONLY be a 
+# simple shell/wrapper that calls a singe instance of the 'actual script'
+#---------------------------------------------------------------------------
+
+# get definition of the Options structure
+import os
+import sys
+
+# MAIN
+if __name__ == '__main__':
+    # Create path to the 'real' script
+    script = os.path.join(sys.argv[4], &quot;scripts&quot;, &quot;example_preprocessing_base.py&quot; )
+
+    # Run the 'actual' pre-processing script
+    sys.exit(os.system( script + &quot; &quot; + &quot; &quot;.join(sys.argv[1:])))
+
+```</pre>
 </div>
 <div created="20190112023225659" modified="20190112023323587" tags="[[Using NQBP]] Usage" title="Running NQBP">
 <pre>!Running NQBP
@@ -5692,11 +5777,13 @@ Notes:
 * Make a copy of the file &lt;code&gt;nqbp/nqbp.py&lt;/code&gt; and place it in your project directory
 </pre>
 </div>
-<div created="20190112023024780" modified="20190112023352577" tags="[[Using NQBP]] Usage" title="Selecting What To Build">
+<div created="20190112023024780" modified="20200421040315062" tags="[[Using NQBP]] Usage" title="Selecting What To Build">
 <pre>* In a project directory, create a file named &lt;code&gt;libdirs.b&lt;/code&gt;.  This file contains a list of all source code directories to be built
 ** Directories are referenced relative to the //package// root directory
 ** An entry in the file can reference another &lt;code&gt;libdirs.b&lt;/code&gt; file within the &lt;code&gt;projects/&lt;/code&gt; directory tree.  The syntax for this is to use relative directory path qualifer to the reference &lt;code&gt;libdirs.b&lt;/code&gt; file.
-** When building within [[Outcast|http://integerfox.com/outcast/index.html]], directories within an external package are referenced by leading '/', then package name, then the source directory.
+** When building within [[Outcast|http://integerfox.com/outcast/index.html]]
+*** Directories within in the package can optionally be referenced from the root of the package by a leading `/`, then the top level directory name.
+*** Directories within an ''external packages'' are referenced by leading `//`, then package name, then the source directory.
 ** Blank lines, or lines starting with '#' are ignored.
 ** An entry that starts with `[&lt;variant&gt;]` will only be compiled when `&lt;variant&gt;` matches the build variant specified when nqbp is invoked.  
 ***Entries with no `[]` prefix are compiled for all variants.
@@ -5722,8 +5809,11 @@ src/foobar &lt; hello.c world.cpp
 # Include a common libdirs.b file (use relative-to-the-package root syntax)
 /top/my_common_libdirs.b
 
-# Within Outcast, build PkgB's src/bob directory (e.g.. relative-to-the- workspace root)
+# Outcast model enabled, build PkgB's src/bob directory (e.g.. relative-to-the- workspace root)
 //PkgB/src/bob
+
+# Legacy model enabled, build the third-party module Uncle under the xsrc/ directory
+xsrc/Uncle/src
 
 # Build an using an absolute path that the base path is specified by an environment variable
 # where ARDUINO_TOOLS=c:\Progra~2\Ardunio

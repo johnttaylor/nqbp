@@ -466,7 +466,7 @@ class ToolChain:
         # Set my command options to construct an 'all' libdirs list
         libdirs  = []
         libnames = []
-        myargs   = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False, '-q':None, '-Q':None }
+        myargs   = { '-p':False, '-x':False, '-b':arguments['-b'], '--noabs':False, '-q':None, '-Q':None, '-c':None, '-C':None }
         utils.create_working_libdirs( self._printer, inf, myargs, libdirs, libnames, local_external_setting, variant )  
         
         # Expand any _BUILD_DIR.aaaa symbols for .firstobjs and .lastobjs

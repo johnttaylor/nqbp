@@ -287,6 +287,10 @@ def create_working_libdirs( printer, inf, arguments, libdirs, libnames, local_ex
             pass
         elif ( arguments['-Q'] != None and re.search( arguments['-Q'], line ) == None ):
             pass
+        elif ( arguments['-c'] != None and arguments['-c'] in line ):
+            pass
+        elif ( arguments['-C'] != None and re.search( arguments['-C'], line ) != None ):
+            pass
         else:
             libdirs.append( ((line, srctype, srclist), entry) )
             libnames.append( line )

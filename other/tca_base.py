@@ -105,8 +105,7 @@ def run(argv):
         if ( platform.system() == 'Windows' ):
             python = 'py -3'
 
-        cmd  = '{} -m gcovr {} {} -j 4 -r {}{}src --object-directory . {}'.format(python, excludes, arcopt, pkg, os.sep, ' '.join(args['<args>']) if args['<args>'] else '') 
-        print( cmd )
+        cmd  = '{} -m gcovr {} {} -j 8 -r {}{}src --object-directory . {}'.format(python, excludes, arcopt, pkg, os.sep, ' '.join(args['<args>']) if args['<args>'] else '') 
         if (args['<args>']):
             first = args['<args>'][0]
             if (first == '-h' or first == '--help'):

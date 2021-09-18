@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 """
 Package specific script that updates the 'pkg.namespaces' file with all of the
 namespaces 'owned' by the package.  This script is called as part of the
@@ -18,7 +18,9 @@ Returns: If the update was successful then the script returns '0'; else
 #------------------------------------------------------------------------------
 # 
 
-# No auto update of namespaces
-print "No automatic update of namespaces."
+# MAIN
+if __name__ == '__main__':
+    # No auto update of namespaces
+    print( "No automatic update of namespaces." )
 
 

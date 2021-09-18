@@ -116,7 +116,7 @@ def run_shell2( cmd, stdout=False, on_err_msg=None ):
 
     if ( p.returncode != 0 and on_err_msg != None ):
         print_verbose( "{} {}".format(r0,r1) )
-        exit(on_err_msg)
+        sys.exit(on_err_msg)
 
     return (p.returncode, "{} {}".format(r0,r1))
     
@@ -204,7 +204,7 @@ def create_working_libdirs( printer, inf, arguments, libdirs, libnames, local_ex
                     if ( parts[1] == 'src' ):
                         line = os.sep.join( parts[1:] )
                     else:
-                        line = 'xsrc' + os.sep + parts[0] + os.sep + os.sep.join( parts[1:] )
+                        line = NQBP_WRKPKGS_DIRNAME() + os.sep + parts[0] + os.sep + os.sep.join( parts[1:] )
 
 
         # Calc root/leading path    
@@ -239,6 +239,10 @@ def create_working_libdirs( printer, inf, arguments, libdirs, libnames, local_ex
                
             # append 'parent' when there is one, i.e. when I have been include from xpkg libdirs.b    
             else:
+                # Find external packages when NOT using the Outcast model
+                if ( NQBP_XPKG_MODEL() != NQBP_XPKG_MODEL_OUTCAST() and line.startswith(NQBP_WRKPKGS_DIRNAME()) ):
+                    entry     = 'xpkg'
+
                 if ( newparent != None ):
                     line = os.path.join(newparent,line)
             

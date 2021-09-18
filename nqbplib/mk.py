@@ -652,6 +652,16 @@ def build_single_directory( printer, arguments, toolchain, dir, entry, pkg_root,
    
     srcpath, display, dir = utils.derive_src_path( pkg_root, work_root, pkgs_dirname, entry, dir )
 
+    # Hack for legacy/Mixed model
+    if ( NQBP_XPKG_MODEL() != NQBP_XPKG_MODEL_OUTCAST() ):
+        badpath = pkgs_dirname + os.sep + pkgs_dirname
+        idx = srcpath.find( badpath )
+        if ( idx > 0 ):
+            srcpath = pkg_root + os.sep + pkgs_dirname + srcpath[idx+len(badpath):] 
+        idx = dir[0].find( badpath )
+        if ( idx > 0 ):
+            dir[0] = pkgs_dirname + os.sep + dir[0][idx+len(badpath):] 
+    
     # Banner 
     printer.output( "=====================" )
     printer.output( "= Building Directory: " + display )

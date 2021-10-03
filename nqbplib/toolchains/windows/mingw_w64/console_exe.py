@@ -20,6 +20,9 @@ class ToolChain( base.ToolChain ):
         # more stuff to clean
         self._clean_list.extend( ['xml'] )
 
+        # Disable the following 'string warnings' because they generate false-positives (i.e. issues with GCC itself)
+        self._base_release.cflags = self._base_release.cflags + '-Wno-stringop-truncation -Wno-stringop-overflow '
+
         # Force ANSI standard printfs/scanf
         self._base_release.cflags = self._base_release.cflags + '-D__USE_MINGW_ANSI_STDIO=1'
 
